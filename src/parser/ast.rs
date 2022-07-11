@@ -39,7 +39,7 @@ pub enum EarlyMonOp {
 
 /// A immediate
 #[derive(Debug)]
-pub enum EarlyImmediate {
+pub enum EarlyLiteral {
     Int(usize),
     Bool(bool),
 }
@@ -57,7 +57,7 @@ pub enum EarlyIndex {
 #[derive(Debug)]
 pub enum EarlyExpression {
     Ident(Located<EarlyIdentifier>),
-    Immediate(Located<EarlyImmediate>),
+    Literal(Located<EarlyLiteral>),
     MonOp {
         operand: Box<Located<EarlyExpression>>,
         operator: Located<EarlyMonOp>,
@@ -115,13 +115,6 @@ pub enum EarlyStaticType {
 pub struct EarlyStaticArg {
     name: Located<EarlyIdentifier>,
     typ: Option<Located<EarlyStaticType>>,
-}
-
-#[derive(Debug)]
-pub struct EarlyFunc {
-    name: Located<EarlyIdentifier>,
-    args: Located<Vec<Located<EarlyStaticArg>>>,
-    return_type: Located<EarlyStaticType>,
 }
 
 #[derive(Debug)]

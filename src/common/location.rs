@@ -1,11 +1,20 @@
-use codemap;
+use ariadne::Source;
 use std::sync::Arc;
 
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct Location {
-    file: Arc<codemap::File>,
+    file: Arc<Source>,
     start: usize,
     end: usize,
+}
+
+impl std::fmt::Debug for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        f.debug_struct("Location")
+            .field("start", &self.start)
+            .field("end", &self.end)
+            .finish()
+    }
 }
 
 #[derive(Debug)]
@@ -15,7 +24,7 @@ pub struct Located<T> {
 }
 
 impl Location {
-    pub fn new(file: &Arc<codemap::File>, start: usize, end: usize) -> Self {
+    pub fn new(file: &Arc<Source>, start: usize, end: usize) -> Self {
         Self {
             file: file.clone(),
             start,
@@ -25,7 +34,7 @@ impl Location {
 }
 
 impl<T> Located<T> {
-    pub fn new(inner: T, file: &Arc<codemap::File>, start: usize, end: usize) -> Self {
+    pub fn new(inner: T, file: &Arc<Source>, start: usize, end: usize) -> Self {
         Self {
             inner,
             loc: Location::new(file, start, end),
