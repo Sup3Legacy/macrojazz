@@ -1,11 +1,12 @@
-use codemap;
-use std::sync::Arc;
+use chumsky::span::Span;
 
-#[derive(Debug)]
+/// Mock file type
+/// TODO
+pub type File = usize;
+
+#[derive(Debug, Clone)]
 pub struct Location {
-    file: Arc<codemap::File>,
-    start: usize,
-    end: usize,
+    range: std::ops::Range<usize>,
 }
 
 #[derive(Debug)]
@@ -15,20 +16,45 @@ pub struct Located<T> {
 }
 
 impl Location {
-    pub fn new(file: &Arc<codemap::File>, start: usize, end: usize) -> Self {
-        Self {
-            file: file.clone(),
-            start,
-            end,
-        }
+    pub fn new(start: usize, end: usize) -> Self {
+        Self { range: start..end }
+    }
+
+    pub fn from_range(range: std::ops::Range<usize>) -> Self {
+        Self {range}
     }
 }
 
 impl<T> Located<T> {
-    pub fn new(inner: T, file: &Arc<codemap::File>, start: usize, end: usize) -> Self {
+    pub fn new(inner: T, start: usize, end: usize) -> Self {
         Self {
             inner,
-            loc: Location::new(file, start, end),
+            loc: Location::new(start, end),
         }
+    }
+
+    pub fn from_range(inner: T, range: std::ops::Range<usize>) -> Self {
+        Self {
+            inner,
+            loc: Location::from_range(range),
+        }
+    }
+}
+
+impl Span for Location {
+    type Offset = usize;
+    type Context = ();
+
+    fn new(context: Self::Context, range: std::ops::Range<Self::Offset>) -> Self {
+        Self { range }
+    }
+    fn context(&self) -> Self::Context {}
+
+    fn start(&self) -> Self::Offset {
+        self.range.start
+    }
+
+    fn end(&self) -> Self::Offset {
+        self.range.end
     }
 }

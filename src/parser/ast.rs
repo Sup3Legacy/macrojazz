@@ -79,15 +79,9 @@ pub enum EarlyExpression {
 }
 
 #[derive(Debug)]
-pub enum EarlyStamementLhs {
-    Ident(Located<EarlyIdentifier>),
-    // TODO Add slice as a LHS?
-}
-
-#[derive(Debug)]
 pub enum EarlyStatement {
     Affect {
-        lhs: EarlyStamementLhs,
+        lhs: Located<Vec<Located<EarlyIdentifier>>>,
         rhs: Box<Located<EarlyExpression>>,
     },
     IfThenElse {
@@ -106,28 +100,9 @@ pub struct EarlyRuntimeArg {
 }
 
 #[derive(Debug)]
-pub enum EarlyStaticType {
-    Int,
-    Bool,
-}
-
-#[derive(Debug)]
-pub struct EarlyStaticArg {
-    name: Located<EarlyIdentifier>,
-    typ: Option<Located<EarlyStaticType>>,
-}
-
-#[derive(Debug)]
-pub struct EarlyFunc {
-    name: Located<EarlyIdentifier>,
-    args: Located<Vec<Located<EarlyStaticArg>>>,
-    return_type: Located<EarlyStaticType>,
-}
-
-#[derive(Debug)]
 pub struct EarlyNode {
     name: Located<EarlyIdentifier>,
-    static_args: Located<Vec<Located<EarlyStaticArg>>>,
+    static_args: Located<Vec<Located<EarlyIdentifier>>>,
     runtime_args: Located<Vec<Located<EarlyRuntimeArg>>>,
     runtime_outs: Located<Vec<Located<EarlyRuntimeArg>>>,
     block: Located<Block>,
