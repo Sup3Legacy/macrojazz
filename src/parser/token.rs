@@ -23,16 +23,20 @@ pub enum Token {
     Colon,
     Semicolon,
 
-    LT,
+    Lt,
     Lte,
     Gt,
     Gte,
     Eq,
+    Neq,
 
     Plus,
     Minus,
     Div,
     Mul,
+
+    And,
+    Or,
 }
 
 impl Token {
@@ -54,6 +58,24 @@ impl Token {
             "else" => Token::Else,
             "end" => Token::End,
             _ => Token::Ident(s),
+        }
+    }
+
+    pub fn match_op(s: &str) -> Result<Self, ()> {
+        match s {
+            "==" => Ok(Token::Eq),
+            "!=" => Ok(Token::Neq),
+            ">" => Ok(Token::Gt),
+            ">=" => Ok(Token::Gte),
+            "<" => Ok(Token::Lt),
+            "<=" => Ok(Token::Lte),
+            "||" => Ok(Token::Or),
+            "&&" => Ok(Token::And),
+            "+" => Ok(Token::Plus),
+            "-" => Ok(Token::Minus),
+            "*" => Ok(Token::Mul),
+            "/" => Ok(Token::Div),
+            _ => Err(()),
         }
     }
 }
