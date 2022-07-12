@@ -54,6 +54,10 @@ impl Location {
     pub fn get_range(self) -> std::ops::Range<usize> {
         self.range
     }
+
+    pub fn union(self, other: Self) -> std::ops::Range<usize> {
+        (self.range.start.min(other.range.start))..(self.range.end.min(other.range.end))
+    }
 }
 
 impl<T> Located<T> {
@@ -80,6 +84,10 @@ impl<T> Located<T> {
 
     pub fn get_inner(self) -> T {
         self.inner
+    }
+
+    pub fn get_loc(&self) -> Location {
+        self.loc.clone()
     }
 
     pub fn map<U, F>(self, f: F) -> Located<U>

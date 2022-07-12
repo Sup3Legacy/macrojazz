@@ -9,17 +9,22 @@ fn main() {
     //let tokens = parser::lexer().parse(code);
     //println!("{:?}", tokens);
 
-    let code = "function<true>(69)";
+    let code = "abc = f(0) > 23;";
 
     let len = code.chars().count();
 
-    if let Ok(tokens) = parser::lexer().parse(code) {
+    let (tokens, errors) = parser::lexer().parse_recovery(code);
+
+    if let Some(tokens) = tokens {
+        println!("Tokens: {:#?}", tokens);
         println!(
-            "{:#?}",
-            parser::expr_parser().parse(Stream::from_iter(
+            "Parser: {:#?}",
+            parser::statement_parser().parse(Stream::from_iter(
                 len..len + 1,
                 tokens.into_iter().map(|(tok, loc)| (tok, loc.get_range()))
             ))
         );
+    } else {
+        println!("Tokenizer: {:#?}", errors);
     }
 }

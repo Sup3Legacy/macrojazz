@@ -55,6 +55,12 @@ pub enum EarlyIndex {
 }
 
 #[derive(Debug)]
+pub enum EarlyLhs {
+    Single(EarlyIdentifier),
+    Multiple(Vec<Located<EarlyIdentifier>>),
+}
+
+#[derive(Debug)]
 pub enum EarlyExpression {
     Ident(EarlyIdentifier),
     Immediate(EarlyImmediate),
@@ -76,12 +82,13 @@ pub enum EarlyExpression {
         lhs: Box<Located<EarlyExpression>>,
         index: Box<Located<EarlyIndex>>,
     },
+    Error,
 }
 
 #[derive(Debug)]
 pub enum EarlyStatement {
     Affect {
-        lhs: Located<Vec<Located<EarlyIdentifier>>>,
+        lhs: Located<EarlyLhs>,
         rhs: Box<Located<EarlyExpression>>,
     },
     IfThenElse {

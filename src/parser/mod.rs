@@ -63,10 +63,6 @@ pub fn expr_parser() -> impl Parser<Token, Located<EarlyExpression>, Error = Sim
             Located::empty_from_range(EarlyExpression::Immediate(imm), span)
         });
 
-        let atoms = ident.or(immediate).or(expr
-            .clone()
-            .delimited_by(just(Token::ParL), just(Token::ParR)));
-
         let range = expr.clone().then(just(Token::DotDot)).then(expr.clone());
 
         let items = expr
@@ -83,12 +79,14 @@ pub fn expr_parser() -> impl Parser<Token, Located<EarlyExpression>, Error = Sim
                     .map_with_span(|vec, span| (vec, span))
                     .or_not(),
             )
+            .labelled("Static parameters")
             .then(
                 items
                     .clone()
                     .delimited_by(just(Token::ParL), just(Token::ParR))
                     .map_with_span(|vec, span| (vec, span)),
             )
+            .labelled("Runtime parameters")
             .map_with_span(
                 |((id, static_args), runtime_args), span: std::ops::Range<usize>| {
                     Located::empty_from_range(
@@ -106,8 +104,76 @@ pub fn expr_parser() -> impl Parser<Token, Located<EarlyExpression>, Error = Sim
                 },
             );
 
-        call.or(ident).or(immediate)
+        let atoms = call.or(immediate).or(ident).or(expr
+            .clone()
+            .delimited_by(just(Token::ParL), just(Token::ParR)));
+
+        let op = atoms
+            .clone()
+            .then(
+                just(Token::Gt)
+                    .map_with_span(|tok, span| (tok, span))
+                    .then(atoms)
+                    .repeated(),
+            )
+            .foldl(|a, ((op, op_span), b)| {
+                let new_span = a.get_loc().union(b.get_loc());
+                Located::empty_from_range(
+                    EarlyExpression::BinOp {
+                        lhs: Box::new(a),
+                        rhs: Box::new(b),
+                        operator: Located::empty_from_range(EarlyBinOp::Greater, op_span),
+                    },
+                    new_span,
+                )
+            });
+
+        let temp = expr
+            .clone()
+            .then(just(Token::Gt).map_with_span(Located::empty_from_range))
+            .then(expr.clone())
+            .map_with_span(|((e1, loc_tok), e2), span| {
+                Located::empty_from_range(
+                    EarlyExpression::BinOp {
+                        lhs: Box::new(e1),
+                        rhs: Box::new(e2),
+                        operator: loc_tok.map(|_| EarlyBinOp::Greater),
+                    },
+                    span,
+                )
+            });
+
+        op.or(temp)
     })
+}
+
+pub fn statement_parser(
+) -> impl Parser<Token, Located<EarlyStatement>, Error = Simple<Token>> + Clone {
+    let lhs = (select! {Token::Ident(id) => id}
+        .labelled("identifier")
+        .map_with_span(|id, span| Located::empty_from_range(EarlyLhs::Single(id), span)))
+    .or(
+        (select! {Token::Ident(id) => id}.map_with_span(Located::empty_from_range))
+            .separated_by(just(Token::Comma))
+            .delimited_by(just(Token::ParL), just(Token::ParR))
+            .map_with_span(|vec, span| Located::empty_from_range(EarlyLhs::Multiple(vec), span)),
+    );
+
+    let affect = lhs
+        .then(just(Token::Affect))
+        .then(expr_parser())
+        .then_ignore(just(Token::Semicolon))
+        .map_with_span(|((lhs, _), expr), span| {
+            Located::empty_from_range(
+                EarlyStatement::Affect {
+                    lhs,
+                    rhs: Box::new(expr),
+                },
+                span,
+            )
+        });
+
+    affect
 }
 
 mod tests {

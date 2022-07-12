@@ -77,6 +77,7 @@ impl Token {
             "-" => Ok(Token::Minus),
             "*" => Ok(Token::Mul),
             "/" => Ok(Token::Div),
+            "=" => Ok(Token::Affect),
             _ => Err(()),
         }
     }
