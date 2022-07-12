@@ -1,4 +1,4 @@
-use crate::common::location::Location;
+
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Token {
@@ -6,6 +6,8 @@ pub enum Token {
     Int(usize),
 
     Ident(String),
+    IdentParL(String),
+    IdentBraL(String),
 
     Node,
 

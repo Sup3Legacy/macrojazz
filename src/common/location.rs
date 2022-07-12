@@ -1,8 +1,3 @@
-use std::sync::Arc;
-
-use ariadne::Source;
-use internment::Intern;
-
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct SrcId(usize);
 
@@ -12,7 +7,7 @@ impl SrcId {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Hash, PartialEq, Eq)]
 pub struct Location {
     file: SrcId,
     range: std::ops::Range<usize>,
@@ -24,7 +19,7 @@ impl std::fmt::Debug for Location {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Hash, PartialEq, Eq)]
 pub struct Located<T> {
     inner: T,
     loc: Location,
@@ -55,6 +50,10 @@ impl Location {
             range,
         }
     }
+
+    pub fn get_range(self) -> std::ops::Range<usize> {
+        self.range
+    }
 }
 
 impl<T> Located<T> {
@@ -71,6 +70,17 @@ impl<T> Located<T> {
             loc: Location::from_range(file, range),
         }
     }
+
+    pub fn empty_from_range(inner: T, range: std::ops::Range<usize>) -> Self {
+        Self {
+            inner,
+            loc: Location::empty_from_range(range),
+        }
+    }
+
+    pub fn get_inner(self) -> T {
+        self.inner
+    }
 }
 
 impl chumsky::Span for Location {
@@ -79,12 +89,12 @@ impl chumsky::Span for Location {
 
     fn new(context: Self::Context, range: std::ops::Range<Self::Offset>) -> Self {
         Self {
-            file: context.clone(),
+            file: context,
             range,
         }
     }
     fn context(&self) -> Self::Context {
-        self.file.clone()
+        self.file
     }
 
     fn start(&self) -> Self::Offset {

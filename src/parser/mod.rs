@@ -2,16 +2,26 @@ mod ast;
 mod token;
 use crate::common::location::{Located, Location};
 use ast::*;
-use chumsky::{prelude::*, stream::Stream};
+
+use chumsky::prelude::*;
 use token::Token;
 
 pub fn lexer() -> impl Parser<char, Vec<(Token, Location)>, Error = Simple<char>> {
-    let int = text::int(10)
-        .from_str::<usize>()
-        .unwrapped()
-        .map(Token::Int);
+    let int = (just("0").ignore_then(
+        (just("x")
+            .ignore_then(text::int(16))
+            .map(|s: String| usize::from_str_radix(s.as_str(), 16).unwrap()))
+        .or(just("o")
+            .ignore_then(text::int(8))
+            .map(|s: String| usize::from_str_radix(s.as_str(), 8).unwrap()))
+        .or(just("b")
+            .ignore_then(text::int(2))
+            .map(|s: String| usize::from_str_radix(s.as_str(), 2).unwrap())),
+    ))
+    .or(text::int(10).from_str::<usize>().unwrapped())
+    .map(Token::Int);
 
-    let control = one_of("()<>;,").map(Token::map_control);
+    let control = one_of("();,").map(Token::map_control);
 
     let op = one_of("+-*/!=<>")
         .repeated()
@@ -35,14 +45,79 @@ pub fn lexer() -> impl Parser<char, Vec<(Token, Location)>, Error = Simple<char>
     token.padded_by(comment.repeated()).padded().repeated()
 }
 
-pub fn expr_parser(
-) -> impl Parser<Token, Located<EarlyExpression>, Error = Simple<Located<Token>>> + Clone {
-    todo!()
+pub fn expr_parser() -> impl Parser<Token, Located<EarlyExpression>, Error = Simple<Token>> + Clone
+{
+    recursive(|expr| {
+        let ident = select! { Token::Ident(id) => id }
+            .labelled("identifier")
+            .map_with_span(|id, span: std::ops::Range<usize>| {
+                Located::empty_from_range(
+                    EarlyExpression::Ident(Located::empty_from_range(id, span.clone())),
+                    span,
+                )
+            });
+
+        let immediate = select! {
+            Token::Bool(b) => EarlyImmediate::Bool(b),
+            Token::Int(i) => EarlyImmediate::Int(i),
+        }
+        .labelled("immediate value")
+        .map_with_span(|imm, span: std::ops::Range<usize>| {
+            Located::empty_from_range(
+                EarlyExpression::Immediate(Located::empty_from_range(imm, span.clone())),
+                span,
+            )
+        });
+
+        let atoms = ident.or(immediate).or(expr
+            .clone()
+            .delimited_by(just(Token::ParL), just(Token::ParR)));
+
+        let range = expr.clone().then(just(Token::DotDot)).then(expr.clone());
+
+        let items = expr
+            .clone()
+            .separated_by(just(Token::Comma))
+            .allow_trailing();
+
+        let call = ident
+            .map(|id_expr| match id_expr.get_inner() {
+                EarlyExpression::Ident(id) => id,
+                _ => panic!(),
+            })
+            .then(
+                items
+                    .clone()
+                    .delimited_by(just(Token::Lt), just(Token::Gt))
+                    .or_not(),
+            )
+            .then(
+                items
+                    .clone()
+                    .delimited_by(just(Token::ParL), just(Token::ParR)),
+            )
+            .map_with_span(
+                |((id, static_args), runtime_args), span: std::ops::Range<usize>| {
+                    Located::empty_from_range(
+                        EarlyExpression::FuncCall {
+                            func_name: id,
+                            static_params: match static_args {
+                                Some(args) => args,
+                                None => Vec::new(),
+                            },
+                            runtime_params: runtime_args,
+                        },
+                        span,
+                    )
+                },
+            );
+
+        call.or(ident).or(immediate)
+    })
 }
 
 mod tests {
     use super::*;
-    use chumsky::Parser;
 
     #[test]
     fn simple() {
