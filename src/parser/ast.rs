@@ -56,8 +56,8 @@ pub enum EarlyIndex {
 
 #[derive(Debug)]
 pub enum EarlyExpression {
-    Ident(Located<EarlyIdentifier>),
-    Immediate(Located<EarlyImmediate>),
+    Ident(EarlyIdentifier),
+    Immediate(EarlyImmediate),
     MonOp {
         operand: Box<Located<EarlyExpression>>,
         operator: Located<EarlyMonOp>,
@@ -69,8 +69,8 @@ pub enum EarlyExpression {
     },
     FuncCall {
         func_name: Located<EarlyIdentifier>,
-        static_params: EarlyParams,
-        runtime_params: EarlyParams,
+        static_params: Option<Located<EarlyParams>>,
+        runtime_params: Located<EarlyParams>,
     },
     Index {
         lhs: Box<Located<EarlyExpression>>,

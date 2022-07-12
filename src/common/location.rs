@@ -81,6 +81,16 @@ impl<T> Located<T> {
     pub fn get_inner(self) -> T {
         self.inner
     }
+
+    pub fn map<U, F>(self, f: F) -> Located<U>
+    where
+        F: FnOnce(T) -> U,
+    {
+        Located {
+            inner: f(self.inner),
+            loc: self.loc,
+        }
+    }
 }
 
 impl chumsky::Span for Location {

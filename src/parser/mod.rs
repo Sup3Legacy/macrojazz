@@ -51,10 +51,7 @@ pub fn expr_parser() -> impl Parser<Token, Located<EarlyExpression>, Error = Sim
         let ident = select! { Token::Ident(id) => id }
             .labelled("identifier")
             .map_with_span(|id, span: std::ops::Range<usize>| {
-                Located::empty_from_range(
-                    EarlyExpression::Ident(Located::empty_from_range(id, span.clone())),
-                    span,
-                )
+                Located::empty_from_range(EarlyExpression::Ident(id), span)
             });
 
         let immediate = select! {
@@ -63,10 +60,7 @@ pub fn expr_parser() -> impl Parser<Token, Located<EarlyExpression>, Error = Sim
         }
         .labelled("immediate value")
         .map_with_span(|imm, span: std::ops::Range<usize>| {
-            Located::empty_from_range(
-                EarlyExpression::Immediate(Located::empty_from_range(imm, span.clone())),
-                span,
-            )
+            Located::empty_from_range(EarlyExpression::Immediate(imm), span)
         });
 
         let atoms = ident.or(immediate).or(expr
@@ -80,32 +74,32 @@ pub fn expr_parser() -> impl Parser<Token, Located<EarlyExpression>, Error = Sim
             .separated_by(just(Token::Comma))
             .allow_trailing();
 
-        let call = ident
-            .map(|id_expr| match id_expr.get_inner() {
-                EarlyExpression::Ident(id) => id,
-                _ => panic!(),
-            })
+        let call = select! { Token::Ident(id) => id }
+            .map_with_span(Located::empty_from_range)
             .then(
                 items
                     .clone()
                     .delimited_by(just(Token::Lt), just(Token::Gt))
+                    .map_with_span(|vec, span| (vec, span))
                     .or_not(),
             )
             .then(
                 items
                     .clone()
-                    .delimited_by(just(Token::ParL), just(Token::ParR)),
+                    .delimited_by(just(Token::ParL), just(Token::ParR))
+                    .map_with_span(|vec, span| (vec, span)),
             )
             .map_with_span(
                 |((id, static_args), runtime_args), span: std::ops::Range<usize>| {
                     Located::empty_from_range(
                         EarlyExpression::FuncCall {
                             func_name: id,
-                            static_params: match static_args {
-                                Some(args) => args,
-                                None => Vec::new(),
-                            },
-                            runtime_params: runtime_args,
+                            static_params: static_args
+                                .map(|(sp, span)| Located::empty_from_range(sp, span)),
+                            runtime_params: Located::empty_from_range(
+                                runtime_args.0,
+                                runtime_args.1,
+                            ),
                         },
                         span,
                     )

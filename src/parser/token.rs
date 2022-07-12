@@ -6,8 +6,6 @@ pub enum Token {
     Int(usize),
 
     Ident(String),
-    IdentParL(String),
-    IdentBraL(String),
 
     Node,
 
@@ -59,6 +57,8 @@ impl Token {
             "if" => Token::If,
             "else" => Token::Else,
             "end" => Token::End,
+            "true" => Token::Bool(true),
+            "false" => Token::Bool(false),
             _ => Token::Ident(s),
         }
     }
