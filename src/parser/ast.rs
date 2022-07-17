@@ -30,6 +30,11 @@ pub enum EarlyBinOp {
     BitXOr,
 }
 
+#[derive(Debug)]
+pub enum EarlyOperator {
+    Reg,
+}
+
 /// A 1-adic operator
 #[derive(Debug)]
 pub enum EarlyMonOp {
@@ -49,15 +54,15 @@ pub enum EarlyIndex {
     Range {
         lhs: Option<Located<EarlyExpression>>,
         rhs: Option<Located<EarlyExpression>>,
-        rhs_iinclusive: bool,
+        rhs_inclusive: bool,
     },
     Simple(Located<EarlyExpression>),
 }
 
 #[derive(Debug)]
 pub enum EarlyExpression {
-    Ident(Located<EarlyIdentifier>),
-    Literal(Located<EarlyLiteral>),
+    Ident(EarlyIdentifier),
+    Literal(EarlyLiteral),
     MonOp {
         operand: Box<Located<EarlyExpression>>,
         operator: Located<EarlyMonOp>,
@@ -76,33 +81,35 @@ pub enum EarlyExpression {
         lhs: Box<Located<EarlyExpression>>,
         index: Box<Located<EarlyIndex>>,
     },
+    Tuple(Located<Vec<Located<EarlyExpression>>>),
 }
 
 #[derive(Debug)]
-pub enum EarlyStamementLhs {
+pub enum EarlyStatementLhs {
     Ident(Located<EarlyIdentifier>),
+    Tuple(Located<Vec<Located<EarlyIdentifier>>>),
     // TODO Add slice as a LHS?
 }
 
 #[derive(Debug)]
 pub enum EarlyStatement {
     Affect {
-        lhs: EarlyStamementLhs,
+        lhs: EarlyStatementLhs,
         rhs: Box<Located<EarlyExpression>>,
     },
     IfThenElse {
         condition: Box<Located<EarlyExpression>>,
-        if_block: Located<Block>,
-        else_block: Option<Located<Block>>,
-    }
+        if_block: Located<EarlyBlock>,
+        else_block: Option<Located<EarlyBlock>>,
+    },
 }
 
-pub type Block = Vec<Located<EarlyStatement>>;
+pub type EarlyBlock = Vec<Located<EarlyStatement>>;
 
 #[derive(Debug)]
 pub struct EarlyRuntimeArg {
-    name: Located<EarlyIdentifier>,
-    size: Option<usize>,
+    pub name: Located<EarlyIdentifier>,
+    pub typ: Option<Located<EarlyExpression>>,
 }
 
 #[derive(Debug)]
@@ -113,15 +120,15 @@ pub enum EarlyStaticType {
 
 #[derive(Debug)]
 pub struct EarlyStaticArg {
-    name: Located<EarlyIdentifier>,
-    typ: Option<Located<EarlyStaticType>>,
+    pub name: Located<EarlyIdentifier>,
+    pub typ: Option<Located<EarlyStaticType>>,
 }
 
 #[derive(Debug)]
 pub struct EarlyNode {
-    name: Located<EarlyIdentifier>,
-    static_args: Located<Vec<Located<EarlyStaticArg>>>,
-    runtime_args: Located<Vec<Located<EarlyRuntimeArg>>>,
-    runtime_outs: Located<Vec<Located<EarlyRuntimeArg>>>,
-    block: Located<Block>,
+    pub name: Located<EarlyIdentifier>,
+    pub static_args: Option<Located<Vec<Located<EarlyStaticArg>>>>,
+    pub runtime_args: Located<Vec<Located<EarlyRuntimeArg>>>,
+    pub runtime_outs: Located<Vec<Located<EarlyRuntimeArg>>>,
+    pub block: Located<EarlyBlock>,
 }
