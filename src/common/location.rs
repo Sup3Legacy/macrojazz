@@ -55,6 +55,10 @@ impl Location {
         self.range
     }
 
+    pub fn extend(self, start: usize, end: usize) -> std::ops::Range<usize> {
+        self.range.start.min(start)..(self.range.end.max(end))
+    }
+
     pub fn union(self, other: Self) -> std::ops::Range<usize> {
         (self.range.start.min(other.range.start))..(self.range.end.min(other.range.end))
     }

@@ -40,6 +40,7 @@ pub enum EarlyOperator {
 pub enum EarlyMonOp {
     Minus,
     Not,
+    BitNot,
 }
 
 /// A immediate

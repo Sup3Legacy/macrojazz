@@ -128,58 +128,6 @@ peg::parser! {
                     }, loc_x.union(loc_y))
                 }
 
-               x:(@) _ start:position!() "!=" end:position!() _ y:@ {
-                    let loc_x = x.get_loc();
-                    let loc_y = y.get_loc();
-                    Located::empty_from_range(EarlyExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyBinOp::NEquals, start..end),
-                        lhs: Box::new(x),
-                        rhs: Box::new(y),
-                    }, loc_x.union(loc_y))
-                }
-
-                --
-
-               x:(@) _ start:position!() ">" end:position!() _ y:@ {
-                    let loc_x = x.get_loc();
-                    let loc_y = y.get_loc();
-                    Located::empty_from_range(EarlyExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyBinOp::Greater, start..end),
-                        lhs: Box::new(x),
-                        rhs: Box::new(y),
-                    }, loc_x.union(loc_y))
-                }
-
-               x:(@) _ start:position!() ">=" end:position!() _ y:@ {
-                    let loc_x = x.get_loc();
-                    let loc_y = y.get_loc();
-                    Located::empty_from_range(EarlyExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyBinOp::GreaterEq, start..end),
-                        lhs: Box::new(x),
-                        rhs: Box::new(y),
-                    }, loc_x.union(loc_y))
-                }
-
-               x:(@) _ start:position!() "<" end:position!() _ y:@ {
-                    let loc_x = x.get_loc();
-                    let loc_y = y.get_loc();
-                    Located::empty_from_range(EarlyExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyBinOp::Smaller, start..end),
-                        lhs: Box::new(x),
-                        rhs: Box::new(y),
-                    }, loc_x.union(loc_y))
-                }
-
-               x:(@) _ start:position!() "<=" end:position!() _ y:@ {
-                    let loc_x = x.get_loc();
-                    let loc_y = y.get_loc();
-                    Located::empty_from_range(EarlyExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyBinOp::SmallerEq, start..end),
-                        lhs: Box::new(x),
-                        rhs: Box::new(y),
-                    }, loc_x.union(loc_y))
-                }
-
                 l:literal(file)
                     {
                         let loc = l.get_loc();

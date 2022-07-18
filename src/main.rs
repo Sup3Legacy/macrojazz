@@ -5,7 +5,7 @@ mod parser;
 fn main() {
     let code = r"
 node test<n: int>(a: [!n], b: [1]) -> (c: [n]) {
-    c = a;
+    c = a == 1 != 2;
 }
 ";
 
