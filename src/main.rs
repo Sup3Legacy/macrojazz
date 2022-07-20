@@ -5,7 +5,7 @@ mod parser;
 fn main() {
     let code = r"
 node test<n: int>(a: [!n], b: [1]) -> (c: [n]) {
-    c = a == 1 != 2;
+    c = f<a,if a==b {a} else {b}>(1, 2) ^ 2 | a[..=n - 2] . if n == n { b } else { c };
 }
 ";
 

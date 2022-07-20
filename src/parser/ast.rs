@@ -6,11 +6,21 @@ pub type EarlyIdentifier = String;
 /// The type for function parameters
 pub type EarlyParams = Vec<Located<EarlyExpression>>;
 
+pub type EarlyStaticParams = Vec<Located<EarlyStaticExpression>>;
+
 pub type EarlyProgram = Vec<Located<EarlyNode>>;
 
 /// A 2-adic operator
 #[derive(Debug)]
 pub enum EarlyBinOp {
+    Concat,
+    BitOr,
+    BitAnd,
+    BitXOr,
+}
+
+#[derive(Debug)]
+pub enum EarlyStaticBinOp {
     Plus,
     Minus,
     Div,
@@ -18,16 +28,8 @@ pub enum EarlyBinOp {
     Modulo,
     Or,
     And,
-    Smaller,
-    SmallerEq,
-    Greater,
-    GreaterEq,
     Equals,
     NEquals,
-    Concat,
-    BitOr,
-    BitAnd,
-    BitXOr,
 }
 
 #[derive(Debug)]
@@ -38,14 +40,23 @@ pub enum EarlyOperator {
 /// A 1-adic operator
 #[derive(Debug)]
 pub enum EarlyMonOp {
+    BitNot,
+}
+
+#[derive(Debug)]
+pub enum EarlyStaticMonOp {
     Minus,
     Not,
-    BitNot,
 }
 
 /// A immediate
 #[derive(Debug)]
 pub enum EarlyLiteral {
+    Int(usize),
+}
+
+#[derive(Debug)]
+pub enum EarlyStaticLiteral {
     Int(usize),
     Bool(bool),
 }
@@ -53,11 +64,11 @@ pub enum EarlyLiteral {
 #[derive(Debug)]
 pub enum EarlyIndex {
     Range {
-        lhs: Option<Located<EarlyExpression>>,
-        rhs: Option<Located<EarlyExpression>>,
+        lhs: Option<Located<EarlyStaticExpression>>,
+        rhs: Option<Located<EarlyStaticExpression>>,
         rhs_inclusive: bool,
     },
-    Simple(Located<EarlyExpression>),
+    Simple(EarlyStaticExpression),
 }
 
 #[derive(Debug)]
@@ -75,14 +86,39 @@ pub enum EarlyExpression {
     },
     FuncCall {
         func_name: Located<EarlyIdentifier>,
-        static_params: EarlyParams,
+        static_params: Option<EarlyStaticParams>,
         runtime_params: EarlyParams,
     },
     Index {
         lhs: Box<Located<EarlyExpression>>,
         index: Box<Located<EarlyIndex>>,
     },
-    Tuple(Located<Vec<Located<EarlyExpression>>>),
+    Tuple(Vec<Located<EarlyExpression>>),
+    IfThenElse {
+        condition: Box<Located<EarlyStaticExpression>>,
+        if_block: Box<Located<EarlyExpression>>,
+        else_block: Box<Located<EarlyExpression>>,
+    },
+}
+
+#[derive(Debug)]
+pub enum EarlyStaticExpression {
+    Ident(EarlyIdentifier),
+    Literal(EarlyStaticLiteral),
+    MonOp {
+        operand: Box<Located<EarlyStaticExpression>>,
+        operator: Located<EarlyStaticMonOp>,
+    },
+    BinOp {
+        lhs: Box<Located<EarlyStaticExpression>>,
+        rhs: Box<Located<EarlyStaticExpression>>,
+        operator: Located<EarlyStaticBinOp>,
+    },
+    IfThenElse {
+        condition: Box<Located<EarlyStaticExpression>>,
+        if_block: Box<Located<EarlyStaticExpression>>,
+        else_block: Box<Located<EarlyStaticExpression>>,
+    },
 }
 
 #[derive(Debug)]
@@ -99,9 +135,9 @@ pub enum EarlyStatement {
         rhs: Box<Located<EarlyExpression>>,
     },
     IfThenElse {
-        condition: Box<Located<EarlyExpression>>,
+        condition: Box<Located<EarlyStaticExpression>>,
         if_block: Located<EarlyBlock>,
-        else_block: Option<Located<EarlyBlock>>,
+        else_block: Located<EarlyBlock>,
     },
 }
 
@@ -110,7 +146,7 @@ pub type EarlyBlock = Vec<Located<EarlyStatement>>;
 #[derive(Debug)]
 pub struct EarlyRuntimeArg {
     pub name: Located<EarlyIdentifier>,
-    pub typ: Option<Located<EarlyExpression>>,
+    pub typ: Option<Located<EarlyStaticExpression>>,
 }
 
 #[derive(Debug)]
