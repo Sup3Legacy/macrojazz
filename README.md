@@ -1,3 +1,3 @@
 # Macrojazz
 
-## Build status: ![CI](https://github.com/Sup3Legacy/macrojazz/workflows/ci/badge.svg)
+## Build status: [![MacroJazz CI workflow](https://github.com/Sup3Legacy/macrojazz/actions/workflows/ci.yml/badge.svg)](https://github.com/Sup3Legacy/macrojazz/actions/workflows/ci.yml)
