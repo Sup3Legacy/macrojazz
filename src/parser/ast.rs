@@ -150,9 +150,15 @@ pub struct EarlyRuntimeArg {
 }
 
 #[derive(Debug)]
-pub enum EarlyStaticType {
+pub enum EarlyStaticBaseType {
     Int,
     Bool,
+}
+
+#[derive(Debug)]
+pub struct EarlyStaticType {
+    pub base: Option<Located<EarlyStaticBaseType>>,
+    pub refinement: Option<Located<EarlyStaticExpression>>,
 }
 
 #[derive(Debug)]

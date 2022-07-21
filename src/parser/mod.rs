@@ -413,21 +413,54 @@ peg::parser! {
                 Located::new(args, file, start, end)
             }
 
-        rule static_type_bool(file:SrcId) -> Option<Located<EarlyStaticType>>
-            = _ start:position!() ":" _ "bool" end:position!() _
+        rule static_type_bool(file:SrcId) -> Located<EarlyStaticBaseType>
+            = _ start:position!() _ "bool" end:position!() _
             {
-                Some(Located::new(EarlyStaticType::Bool, file, start, end))
+                Located::new(EarlyStaticBaseType::Bool, file, start, end)
             }
 
-        rule static_type_int(file:SrcId) -> Option<Located<EarlyStaticType>>
-            = _ start:position!() ":" _ "int" end:position!() _
+        rule static_type_int(file:SrcId) -> Located<EarlyStaticBaseType>
+            = _ start:position!() _ "int" end:position!() _
             {
-                Some(Located::new(EarlyStaticType::Int, file, start, end))
+                Located::new(EarlyStaticBaseType::Int, file, start, end)
+            }
+
+        rule static_type_base(file: SrcId) -> Located<EarlyStaticBaseType>
+            = static_type_int(file)
+            / static_type_bool(file)
+
+        rule static_type_refined(file: SrcId) -> Located<EarlyStaticType>
+            = _ ":" _ start:position!() "{" base:(base:static_type_base(file) _ ":" { base })? _
+            e:static_expression(file)? "}" end:position!() _
+            {
+                Located::new(
+                    EarlyStaticType {
+                        base,
+                        refinement: e,
+                    },
+                    file,
+                    start,
+                    end,
+                    )
+            }
+
+        rule static_type_simple(file: SrcId) -> Located<EarlyStaticType>
+            = _ ":" _ start:position!() t:static_type_base(file) end:position!() _
+            {
+                Located::new(
+                    EarlyStaticType {
+                        base: Some(t),
+                        refinement: None,
+                    },
+                    file,
+                    start,
+                    end,
+                    )
             }
 
         rule static_type(file: SrcId) -> Option<Located<EarlyStaticType>>
-            = static_type_bool(file)
-            / static_type_int(file)
+            = s:static_type_simple(file) { Some(s) }
+            / s:static_type_refined(file) { Some(s) }
             / { None }
 
         rule static_arg(file: SrcId) -> Located<EarlyStaticArg>
@@ -637,6 +670,16 @@ node f<n>(a) -> (b) {
     } else {
         b = a . 0x23[..3];
     }
+}
+        ";
+        run(code);
+    }
+
+    #[test]
+    fn refined_type() {
+        let code = r"
+node f<n: {int: n == 0}, m: {n != m}, o: {bool: o}>(a) -> (b) {
+    b = a;
 }
         ";
         run(code);
