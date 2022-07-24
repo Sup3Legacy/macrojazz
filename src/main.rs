@@ -20,7 +20,7 @@ struct CommandArgs {
     #[clap(long, value_parser)]
     check_only: bool,
 
-    /// Ignore dead code 
+    /// Ignore dead code
     #[clap(long, value_parser)]
     ignore_dead_code: bool,
 
@@ -28,19 +28,28 @@ struct CommandArgs {
     #[clap(long, value_parser)]
     ignore_unused_args: bool,
 
+    /// Print some debug information along the way
+    #[clap(short, long, value_parser)]
+    verbose: bool,
+
     /// Source files
     sources: Vec<String>,
+
+    /// Top-level node
+    #[clap(short = 'n', long = "node")]
+    top_node: Option<String>,
+
+    /// Output file path
+    #[clap(short = 'o', long = "out")]
+    out_path: Option<String>,
 }
 
 fn get_compile_mode(args: &CommandArgs) -> CompileMode {
-    if args.parse_only {
-        CompileMode::ParseOnly
-    } else if args.type_only {
-        CompileMode::TypeOnly
-    } else if args.check_only {
-        CompileMode::CheckOnly
-    } else {
-        CompileMode::Full
+    match (args.parse_only, args.type_only, args.check_only) {
+        (true, _, _) => CompileMode::ParseOnly,
+        (false, true, _) => CompileMode::TypeOnly,
+        (false, false, true) => CompileMode::CheckOnly,
+        _ => CompileMode::Full,
     }
 }
 
