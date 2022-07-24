@@ -40,21 +40,21 @@ peg::parser! {
         rule int16_literal(file: SourceId) -> Located<EarlyLiteral>
             = _ start:position!() "0x" i:$(['0'..='9' | 'a'..='f' | 'A'..='F']*) end:position!() _
             {?
-                Ok(Located::new(EarlyLiteral::Int(usize::from_str_radix(i, 16).or(Err("Int problem"))?),
+                Ok(Located::new(EarlyLiteral::Int(u64::from_str_radix(i, 16).or(Err("Int problem"))?),
                 file, start, end))
             }
 
         rule int8_literal(file: SourceId) -> Located<EarlyLiteral>
             = _ start:position!() "0o" i:$(['0'..='7']*) end:position!() _
             {?
-                Ok(Located::new(EarlyLiteral::Int(usize::from_str_radix(i, 8).or(Err("Int problem"))?),
+                Ok(Located::new(EarlyLiteral::Int(u64::from_str_radix(i, 8).or(Err("Int problem"))?),
                 file, start, end))
             }
 
         rule int2_literal(file: SourceId) -> Located<EarlyLiteral>
             = _ start:position!() "0b" i:$(['0'..='1']*) end:position!() _
             {?
-                Ok(Located::new(EarlyLiteral::Int(usize::from_str_radix(i, 2).or(Err("Int problem"))?),
+                Ok(Located::new(EarlyLiteral::Int(u64::from_str_radix(i, 2).or(Err("Int problem"))?),
                 file, start, end))
             }
 

@@ -52,12 +52,12 @@ pub enum EarlyStaticMonOp {
 /// A immediate
 #[derive(Debug)]
 pub enum EarlyLiteral {
-    Int(usize),
+    Int(u64),
 }
 
 #[derive(Debug)]
 pub enum EarlyStaticLiteral {
-    Int(usize),
+    Int(u64),
     Bool(bool),
 }
 

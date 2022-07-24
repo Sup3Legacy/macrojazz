@@ -16,6 +16,14 @@ pub enum CompileError {
     ParsingError,
 }
 
+impl From<CompileError> for usize {
+    fn from(c: CompileError) -> Self {
+        match c {
+            CompileError::ParsingError => 1,
+        }
+    }
+}
+
 pub enum Program {
     Null,
     Parsed(EarlyProgram),
@@ -51,20 +59,21 @@ impl CompileContext {
                 Err(peg::error::ParseError { location, expected }) => {
                     self.program = Program::Error(CompileError::ParsingError);
                     Report::build(ReportKind::Error, path, location.offset)
-                        .with_code(3)
+                        .with_code(CompileError::ParsingError as usize)
                         .with_message("Parsing")
                         .with_label(
-                            Label::new((path, location.offset..location.offset))
+                            Label::new((path, location.offset..location.offset + 1))
                                 .with_message(format!("Expected {}", expected))
                                 .with_color(Color::Red),
                         )
                         .with_config(
                             Config::default()
                                 .with_cross_gap(false)
-                                .with_compact(true)
+                                .with_compact(false)
                                 .with_underlines(true)
                                 .with_tab_width(4),
                         )
+                        .with_help("Check grammar specification (TBD)")
                         .finish()
                         .print((path, Source::from(source)))
                         .unwrap();
