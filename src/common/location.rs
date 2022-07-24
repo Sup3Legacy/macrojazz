@@ -26,7 +26,7 @@ impl Location {
         }
     }
 
-    pub fn empty(start: usize, end: usize) -> Self {
+    pub fn _empty(start: usize, end: usize) -> Self {
         Self {
             file: SourceId::empty(),
             range: start..end,

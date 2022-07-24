@@ -24,7 +24,7 @@ impl SourceCache {
         }
     }
 
-    pub fn len(&self) -> usize {
+    pub fn _len(&self) -> usize {
         self.sources.len()
     }
 

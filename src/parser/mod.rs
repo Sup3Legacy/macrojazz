@@ -1,11 +1,9 @@
 pub mod ast;
 
 use crate::common::*;
-use anyhow::{anyhow, Context, Result};
-use ariadne::{FileCache, Source};
+use anyhow::Result;
 pub use ast::*;
 use peg::str::LineCol;
-use std::{path::PathBuf, sync::Arc};
 
 extern crate peg;
 
@@ -186,7 +184,7 @@ peg::parser! {
                 }
 
                  --
-                     
+
                x:(@) _ start:position!() "*" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
@@ -235,7 +233,7 @@ peg::parser! {
                 --
 
                 _ start:position!() "if" _ s:static_expression(file) _ "{"
-                    if_block:static_expression(file) "}" _ "else" 
+                    if_block:static_expression(file) "}" _ "else"
                     _ "{" else_block:static_expression(file) "}" end:position!() _
                     {
                         Located::new(
@@ -258,7 +256,7 @@ peg::parser! {
                     e
                 }
 
-            } 
+            }
 
         rule expression(file: SourceId) -> Located<EarlyExpression> = precedence! {
                 start:position!() "~" end:position!() _ x:@ {
@@ -321,9 +319,9 @@ peg::parser! {
                  _ start:position!() i:ident(file) s_args:("<" _ e:static_expression(file) ** "," _ ">" { e })? "(" _ r_args:expression(file) ** "," _ ")" end:position!() _ {
                          println!("Parsing function call.");
                          Located::new(
-                             EarlyExpression::FuncCall { 
-                                 func_name: i, 
-                                 static_params: s_args, 
+                             EarlyExpression::FuncCall {
+                                 func_name: i,
+                                 static_params: s_args,
                                  runtime_params: r_args },
                                  file,
                                  start,
@@ -358,7 +356,7 @@ peg::parser! {
 
                 --
 
-                _ start:position!() 
+                _ start:position!()
                     "if" _ s:static_expression(file) _ "{" _ if_block:expression(file) _ "}" _
                     "else" _ "{" _ else_block:expression(file) _ "}" _
                     end:position!() _
@@ -565,7 +563,6 @@ node f() -> () {
         run(code);
     }
 
-
     #[test]
     fn io_node() {
         let code = r"
@@ -585,7 +582,7 @@ node f<n, m: bool>() -> () {
         ";
         run(code);
     }
- 
+
     #[test]
     fn static_runtime_combined_node() {
         let code = r"
