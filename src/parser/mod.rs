@@ -25,7 +25,8 @@ peg::parser! {
                 !"else"
                 !"true"
                 !"false"
-                v:quiet!{$(['a'..='z' | 'A'..='Z']+)}
+                v:quiet!{$(['a'..='z' | 'A'..='Z' | '_']
+                           ['a'..='z' | 'A'..='Z' |  '_' | '0'..='9']*)}
                 end:position!() _
                 {
                     Located::new(v.to_string(), file, start, end)
@@ -568,6 +569,28 @@ node f() -> () {
         let code = r"
 node f(a: [1], b: [n]) -> (c, d:[42]) {
 
+}
+        ";
+        run(code);
+    }
+
+    #[test]
+    fn complex_idents() {
+        let code = r"
+node f(a9A__: [1], __b: [n]) -> (c, d:[42]) {
+    _0a = b;
+}
+        ";
+        run(code);
+    }
+
+    #[test]
+    #[should_panic]
+    fn broken_ident() {
+        let code = r"
+node f(8a: [1], b: [n]) -> (c, d:[42]) {
+    12_a = 1;
+    123 = 2;
 }
         ";
         run(code);

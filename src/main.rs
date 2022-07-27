@@ -1,6 +1,7 @@
 mod common;
 #[allow(dead_code)]
 mod parser;
+mod typing;
 
 use clap::Parser;
 use common::*;
