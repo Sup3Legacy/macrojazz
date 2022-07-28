@@ -88,6 +88,7 @@ pub enum EarlyExpression {
         func_name: Located<EarlyIdentifier>,
         static_params: Option<EarlyStaticParams>,
         runtime_params: EarlyParams,
+        builtin: Located<bool>,
     },
     Index {
         lhs: Box<Located<EarlyExpression>>,

@@ -317,13 +317,22 @@ peg::parser! {
 
                 --
 
-                 _ start:position!() i:ident(file) s_args:("<" _ e:static_expression(file) ** "," _ ">" { e })? "(" _ r_args:expression(file) ** "," _ ")" end:position!() _ {
+                 _ start:position!() builtin:"@"? builtin_end:position!() 
+                   i:ident(file) s_args:("<" _ 
+                   e:static_expression(file) ** "," _ ">" { e })?
+                   "(" _ r_args:expression(file) ** "," _ ")" 
+                   end:position!() _ {
                          println!("Parsing function call.");
                          Located::new(
                              EarlyExpression::FuncCall {
                                  func_name: i,
                                  static_params: s_args,
-                                 runtime_params: r_args },
+                                 runtime_params: r_args,
+                                 builtin: Located::new(
+                                     builtin.is_some(),
+                                     file,
+                                     start,
+                                     builtin_end)},
                                  file,
                                  start,
                                  end)
@@ -591,6 +600,17 @@ node f(a9A__: [1], __b: [n]) -> (c, d:[42]) {
 node f(8a: [1], b: [n]) -> (c, d:[42]) {
     12_a = 1;
     123 = 2;
+}
+        ";
+        run(code);
+    }
+
+    #[test]
+    fn node_call() {
+        let code = r"
+node f(a: [1], b: [n]) -> (c, d:[42]) {
+    a = f<n - 1, 12>(b, c[..=0]);
+    b = @reg(a, b);
 }
         ";
         run(code);
