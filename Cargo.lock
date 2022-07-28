@@ -143,6 +143,7 @@ dependencies = [
  "codemap",
  "codemap-diagnostic",
  "peg",
+ "yansi",
 ]
 
 [[package]]

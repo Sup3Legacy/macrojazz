@@ -13,6 +13,8 @@ impl SourceId {
     }
 }
 
+// TODO: Implement ariadne::Cache for this struct.
+//       This will help with performances when printing messages
 pub struct SourceCache {
     sources: Vec<(String, String)>,
 }
