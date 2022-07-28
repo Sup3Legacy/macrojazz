@@ -27,7 +27,7 @@ impl CompilerReport {
 
 #[macro_export]
 macro_rules! single_label {
-    ($type:ident, $code:expr, $color:ident, $source_path:expr, $source:expr, 
+    ($type:ident, $code:expr, $color:ident, $source_path:expr, $source:expr,
      $loc_start:expr, $loc_end:expr, $header:expr, $message:expr) => {
         Report::build(ReportKind::$type, $source_path, $loc_start)
             .with_message($header)

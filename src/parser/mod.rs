@@ -317,10 +317,10 @@ peg::parser! {
 
                 --
 
-                 _ start:position!() builtin:"@"? builtin_end:position!() 
-                   i:ident(file) s_args:("<" _ 
+                 _ start:position!() builtin:"@"? builtin_end:position!()
+                   i:ident(file) s_args:("<" _
                    e:static_expression(file) ** "," _ ">" { e })?
-                   "(" _ r_args:expression(file) ** "," _ ")" 
+                   "(" _ r_args:expression(file) ** "," _ ")"
                    end:position!() _ {
                          println!("Parsing function call.");
                          Located::new(

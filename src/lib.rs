@@ -58,7 +58,7 @@ impl CommandArgs {
     }
 
     pub fn iter_sources(&'_ self) -> Iter<'_, String> {
-       self.sources.iter() 
+        self.sources.iter()
     }
 
     pub fn sources_number(&self) -> usize {
