@@ -18,21 +18,33 @@ peg::parser! {
         pub rule program(file: SourceId) -> EarlyProgram
             = _ d:node(file)* _ ![_] { d }
 
+        rule ident_internal(file: SourceId) -> ()
+            =
+                u:&quiet!{$(['a'..='z' | 'A'..='Z' | '_']
+                           ['a'..='z' | 'A'..='Z' |  '_' | '0'..='9']*)}
+                {?
+                    match u {
+                        "node" | "if" | "else" | "true" | "false" =>
+                            Err("This cannot be used as an identifier"),
+                        _ => Ok(())
+                    }
+                }
         rule ident(file: SourceId) -> Located<EarlyIdentifier>
             = _ start:position!()
-                !"node"
-                !"if"
-                !"else"
-                !"true"
-                !"false"
-                v:quiet!{$(['a'..='z' | 'A'..='Z' | '_']
+
+                 (&ident_internal(file)
+                  / expected!("identifier"))
+
+                v:(quiet!{$(['a'..='z' | 'A'..='Z' | '_']
                            ['a'..='z' | 'A'..='Z' |  '_' | '0'..='9']*)}
+                    / expected!("a correct identifier!"))
                 end:position!() _
                 {
-                    Located::new(v.to_string(), file, start, end)
+                     Located::new(v.to_string(), file, start, end)
                 }
         rule int10_literal(file: SourceId) -> Located<EarlyLiteral>
-            = _ start:position!() i:$(['0'..='9']*) end:position!() _
+            = _ start:position!()
+                i:(quiet!{$(['0'..='9']*)} / expected!("integer")) end:position!() _
             {?
                 Ok(Located::new(EarlyLiteral::Int(i.parse().or(Err("Int problem"))?),
                 file, start, end))
@@ -60,10 +72,11 @@ peg::parser! {
             }
 
         rule int_literal(file: SourceId) -> Located<EarlyLiteral>
-            = int2_literal(file)
+            = quiet!{ int2_literal(file)
             / int8_literal(file)
             / int16_literal(file)
-            / int10_literal(file)
+            / int10_literal(file) }
+            / expected!("integer litteral.")
 
         rule bool_true_literal(file: SourceId) -> Located<EarlyStaticLiteral>
             = _ start:position!() "true" end:position!() _
@@ -317,7 +330,8 @@ peg::parser! {
 
                 --
 
-                 _ start:position!() builtin:"@"? builtin_end:position!()
+                 _ start:position!() builtin: quiet!{"@"?}
+                    builtin_end:position!()
                    i:ident(file) s_args:("<" _
                    e:static_expression(file) ** "," _ ">" { e })?
                    "(" _ r_args:expression(file) ** "," _ ")"
@@ -600,6 +614,16 @@ node f(a9A__: [1], __b: [n]) -> (c, d:[42]) {
 node f(8a: [1], b: [n]) -> (c, d:[42]) {
     12_a = 1;
     123 = 2;
+}
+        ";
+        run(code);
+    }
+
+    #[test]
+    #[should_panic]
+    fn keyword_as_identifier() {
+        let code = r"
+node if(8a: [1], b: [n]) -> (c, d:[42]) {
 }
         ";
         run(code);

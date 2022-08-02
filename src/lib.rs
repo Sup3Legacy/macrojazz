@@ -1,8 +1,10 @@
 use std::slice::Iter;
 
+pub mod builtin;
 pub mod common;
 #[allow(dead_code)]
 pub mod parser;
+pub mod pretyping;
 pub mod typing;
 
 use clap::Parser;
