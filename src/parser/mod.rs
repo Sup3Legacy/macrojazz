@@ -24,7 +24,7 @@ peg::parser! {
                            ['a'..='z' | 'A'..='Z' |  '_' | '0'..='9']*)}
                 {?
                     match u {
-                        "node" | "if" | "else" | "true" | "false" =>
+                        "node" | "if" | "else" | "true" | "false" | "int" | "bool" =>
                             Err("This cannot be used as an identifier"),
                         _ => Ok(())
                     }
@@ -37,7 +37,7 @@ peg::parser! {
 
                 v:(quiet!{$(['a'..='z' | 'A'..='Z' | '_']
                            ['a'..='z' | 'A'..='Z' |  '_' | '0'..='9']*)}
-                    / expected!("a correct identifier!"))
+                    / expected!("identifier"))
                 end:position!() _
                 {
                      Located::new(v.to_string(), file, start, end)
