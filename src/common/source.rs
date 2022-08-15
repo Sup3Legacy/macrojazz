@@ -14,12 +14,12 @@ impl SourceId {
 }
 
 // TODO: Implement ariadne::Cache for this struct.
-//       This will help with performances when printing messages
 pub struct SourceCache {
     sources: Vec<(String, String)>,
 }
 
 impl SourceCache {
+    /// Creates a new [`SourceCache`].
     pub fn new() -> Self {
         Self {
             sources: Vec::new(),
@@ -47,6 +47,12 @@ impl SourceCache {
             cache: self,
             index: 0,
         }
+    }
+}
+
+impl Default for SourceCache {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
