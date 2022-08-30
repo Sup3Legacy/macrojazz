@@ -104,7 +104,7 @@ pub enum EarlyExpression {
         lhs: Located<EarlyLhs>,
         rhs: Box<Located<EarlyExpression>>,
         scope: Box<Located<EarlyExpression>>,
-    }
+    },
 }
 
 #[derive(Debug)]
@@ -129,8 +129,8 @@ pub enum EarlyStaticExpression {
 
 #[derive(Debug)]
 pub enum EarlyLhs {
-    Ident(Located<EarlyIdentifier>),
-    Tuple(Located<Vec<Located<EarlyIdentifier>>>),
+    Ident(EarlyIdentifier),
+    Tuple(Vec<Located<EarlyIdentifier>>),
     // TODO Add slice as a LHS?
 }
 

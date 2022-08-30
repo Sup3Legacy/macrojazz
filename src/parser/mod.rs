@@ -24,7 +24,7 @@ peg::parser! {
                            ['a'..='z' | 'A'..='Z' |  '_' | '0'..='9']*)}
                 {?
                     match u {
-                        "node" | "if" | "else" | "true" | "false" | "int" | "bool" =>
+                        "let" | "in" | "node" | "if" | "else" | "true" | "false" | "int" | "bool" =>
                             Err("This cannot be used as an identifier"),
                         _ => Ok(())
                     }
@@ -397,6 +397,23 @@ peg::parser! {
                             )
                     }
 
+                _ start:position!()
+                    "let" _ r:lhs(file) _ "=" _ e:expression(file) _
+                    "in" _ s:expression(file)
+                    end:position!() _
+                    {
+                        Located::new(
+                            EarlyExpression::Let {
+                                lhs: r,
+                                rhs: Box::new(e),
+                                scope: Box::new(s),
+                            },
+                            file,
+                            start,
+                            end
+                        )
+                    }
+
                 _ start:position!() "(" _ e:expression(file) ++ "," _ ")" end:position!() _
                 {
                     if e.len() == 1 {
@@ -498,65 +515,42 @@ peg::parser! {
                 Located::new(a, file, start, end)
             }
 
-        rule lhs_ident(file: SourceId) -> EarlyStatementLhs
-            = i:ident(file)
+        rule lhs_ident(file: SourceId) -> Located<EarlyLhs>
+            = _ start:position!() i:ident(file) end:position!() _
             {
-                EarlyStatementLhs::Ident(i)
+                Located::new(
+                    EarlyLhs::Ident(i.get_inner()),
+                    file,
+                    start,
+                    end
+                )
             }
 
-        rule lhs_tuple(file: SourceId) -> EarlyStatementLhs
+        rule lhs_tuple(file: SourceId) -> Located<EarlyLhs>
             = _ start:position!() "(" _ i:ident(file) ** "," _ ")" end:position!() _
             {
-                EarlyStatementLhs::Tuple(Located::new(i, file, start, end))
+                Located::new(
+                    EarlyLhs::Tuple(i),
+                    file,
+                    start,
+                    end
+                )
             }
 
-        rule lhs(file: SourceId) -> EarlyStatementLhs
+        rule lhs(file: SourceId) -> Located<EarlyLhs>
             = lhs_tuple(file)
             / lhs_ident(file)
 
-        rule statement_affect(file: SourceId) -> Located<EarlyStatement>
-            = _ start:position!() l:lhs(file) "=" e:expression(file) ";" end:position!() _
-            {
-                Located::new(EarlyStatement::Affect { lhs: l, rhs: Box::new(e) }, file, start, end)
-            }
-
-        rule statement_if_then_else(file: SourceId) -> Located<EarlyStatement>
-            = _ start:position!() "if" _ s:static_expression(file) _ "{"
-                if_block:block(file) "}" _ "else" _ "{" else_block:block(file) "}"
-                end:position!() _
-                {
-                    Located::new(
-                        EarlyStatement::IfThenElse {
-                            condition: Box::new(s),
-                            if_block,
-                            else_block,
-                        },
-                        file,
-                        start,
-                        end
-                        )
-                }
-
-        rule statement(file: SourceId) -> Located<EarlyStatement>
-            = statement_affect(file)
-            / statement_if_then_else(file)
-
-        rule block(file: SourceId) -> Located<EarlyBlock>
-            = _ start:position!() b:statement(file)* end:position!() _
-            {
-                Located::new(b, file, start, end)
-            }
-
         rule node(file: SourceId) -> Located<EarlyNode>
             = _ start:position!() "node" _ i:ident(file) s_args:static_arg_vec(file)? r_args:runtime_arg_vec(file)
-                _ "->" _ r_outs:runtime_arg_vec(file) _ "{" b:block(file) "}" end:position!() _
+                _ "->" _ r_outs:runtime_arg_vec(file) _ "{" e:expression(file) "}" end:position!() _
             {
                 Located::new(EarlyNode {
                     name: i,
                     static_args: s_args,
                     runtime_args: r_args,
                     runtime_outs: r_outs,
-                    block: b,
+                    block: e,
                 }, file, start, end)
             }
     }
@@ -601,7 +595,19 @@ node f(a: [1], b: [n]) -> (c, d:[42]) {
     fn complex_idents() {
         let code = r"
 node f(a9A__: [1], __b: [n]) -> (c, d:[42]) {
-    _0a = b;
+    b
+}
+        ";
+        run(code);
+    }
+
+    #[test]
+    fn let_in() {
+        let code = r"
+node f(a9A__: [1], __b: [n]) -> (c, d:[42]) {
+    let (a, b) = 12 in 
+        let c = a & b in 
+            c . 0x12
 }
         ";
         run(code);
