@@ -572,20 +572,10 @@ mod test {
     }
 
     #[test]
-    fn empty_node() {
-        let code = r"
-node f() -> () {
-
-}
-        ";
-        run(code);
-    }
-
-    #[test]
     fn io_node() {
         let code = r"
 node f(a: [1], b: [n]) -> (c, d:[42]) {
-
+    1
 }
         ";
         run(code);
@@ -618,8 +608,7 @@ node f(a9A__: [1], __b: [n]) -> (c, d:[42]) {
     fn broken_ident() {
         let code = r"
 node f(8a: [1], b: [n]) -> (c, d:[42]) {
-    12_a = 1;
-    123 = 2;
+    let 12_a = 1 in 1
 }
         ";
         run(code);
@@ -629,7 +618,7 @@ node f(8a: [1], b: [n]) -> (c, d:[42]) {
     #[should_panic]
     fn keyword_as_identifier() {
         let code = r"
-node if(8a: [1], b: [n]) -> (c, d:[42]) {
+node if(a: [1], b: [n]) -> (c, d:[42]) {
 }
         ";
         run(code);
@@ -639,8 +628,7 @@ node if(8a: [1], b: [n]) -> (c, d:[42]) {
     fn node_call() {
         let code = r"
 node f(a: [1], b: [n]) -> (c, d:[42]) {
-    a = f<n - 1, 12>(b, c[..=0]);
-    b = @reg(a, b);
+    (f<n - 1, 12>(b, c[..=0]), @reg(a, b))
 }
         ";
         run(code);
@@ -650,7 +638,7 @@ node f(a: [1], b: [n]) -> (c, d:[42]) {
     fn static_arg_node() {
         let code = r"
 node f<n, m: bool>() -> () {
-
+    1
 }
         ";
         run(code);
@@ -660,17 +648,7 @@ node f<n, m: bool>() -> () {
     fn static_runtime_combined_node() {
         let code = r"
 node f<n, m: bool>(a: [n], b: [m]) -> (c: [n]) {
-
-}
-        ";
-        run(code);
-    }
-
-    #[test]
-    fn affect_node() {
-        let code = r"
-node f<n>(a) -> (b) {
-    b = a;
+    42
 }
         ";
         run(code);
@@ -680,7 +658,7 @@ node f<n>(a) -> (b) {
     fn runtime_ops() {
         let code = r"
 node f<n>(a) -> (b) {
-    b = (a . a) ^ c | d;
+    (a . a) ^ c | d
 }
         ";
         run(code);
@@ -690,10 +668,10 @@ node f<n>(a) -> (b) {
     fn runtime_range() {
         let code = r"
 node f<n>(a) -> (b) {
-    b = a[0..];
-    b = a[3..n];
-    b = a[(n - 1)..=69 + n];
-    b = a[42];
+    a[0..] .
+    a[3..n] . 
+    a[(n - 1)..=69 + n] .
+    a[42]
 }
         ";
         run(code);
@@ -703,7 +681,7 @@ node f<n>(a) -> (b) {
     fn runtime_ifthenelse() {
         let code = r"
 node f<n>(a) -> (b) {
-    b = if n == 42 { a } else { ~a };
+    if n == 42 { a } else { ~a }
 }
         ";
         run(code);
@@ -713,22 +691,8 @@ node f<n>(a) -> (b) {
     fn complex_runtime() {
         let code = r"
 node f<n>(a) -> (b) {
-    b = (a . 0b100110)[12..=n] & if n != 0xa2 { 0b1 } else { 0b10 };
-    b = g<if n == 42 { 12 } else { 0o123 }>(a[..34]);
-}
-        ";
-        run(code);
-    }
-
-    #[test]
-    fn statement_ifthenelse() {
-        let code = r"
-node f<n>(a) -> (b) {
-    if n == 0 {
-        b = 0;
-    } else {
-        b = a . 0x23[..3];
-    }
+    let b = (a . 0b100110)[12..=n] & if n != 0xa2 { 0b1 } else { 0b10 } in
+        g<if n == 42 { 12 } else { 0o123 }>(a[..34])
 }
         ";
         run(code);
@@ -738,7 +702,7 @@ node f<n>(a) -> (b) {
     fn refined_type() {
         let code = r"
 node f<n: {int: n == 0}, m: {n != m}, o: {bool: o}>(a) -> (b) {
-    b = a;
+    b
 }
         ";
         run(code);
@@ -748,11 +712,11 @@ node f<n: {int: n == 0}, m: {n != m}, o: {bool: o}>(a) -> (b) {
     fn multiple_nodes() {
         let code = r"
 node f<n>(a) -> (b) {
-    b = a;
+    a
 }
 
 node g<m>() -> () {
-
+    b
 }
         ";
         run(code);
