@@ -100,6 +100,11 @@ pub enum EarlyExpression {
         if_block: Box<Located<EarlyExpression>>,
         else_block: Box<Located<EarlyExpression>>,
     },
+    Let {
+        lhs: Located<EarlyLhs>,
+        rhs: Box<Located<EarlyExpression>>,
+        scope: Box<Located<EarlyExpression>>,
+    }
 }
 
 #[derive(Debug)]
@@ -123,26 +128,11 @@ pub enum EarlyStaticExpression {
 }
 
 #[derive(Debug)]
-pub enum EarlyStatementLhs {
+pub enum EarlyLhs {
     Ident(Located<EarlyIdentifier>),
     Tuple(Located<Vec<Located<EarlyIdentifier>>>),
     // TODO Add slice as a LHS?
 }
-
-#[derive(Debug)]
-pub enum EarlyStatement {
-    Affect {
-        lhs: EarlyStatementLhs,
-        rhs: Box<Located<EarlyExpression>>,
-    },
-    IfThenElse {
-        condition: Box<Located<EarlyStaticExpression>>,
-        if_block: Located<EarlyBlock>,
-        else_block: Located<EarlyBlock>,
-    },
-}
-
-pub type EarlyBlock = Vec<Located<EarlyStatement>>;
 
 #[derive(Debug)]
 pub struct EarlyRuntimeArg {
@@ -174,5 +164,5 @@ pub struct EarlyNode {
     pub static_args: Option<Located<Vec<Located<EarlyStaticArg>>>>,
     pub runtime_args: Located<Vec<Located<EarlyRuntimeArg>>>,
     pub runtime_outs: Located<Vec<Located<EarlyRuntimeArg>>>,
-    pub block: Located<EarlyBlock>,
+    pub block: Located<EarlyExpression>,
 }
