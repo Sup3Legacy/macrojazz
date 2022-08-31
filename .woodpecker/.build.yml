@@ -1,0 +1,14 @@
+# CI triggered on commit
+matrix:
+  platform:
+    - linux/amd64
+    - linux/arm64 
+
+platform: ${platform}
+
+pipeline:
+  build:
+    image: debian:stable-slim
+    commands:
+      - echo hey
+      - sleep 5
