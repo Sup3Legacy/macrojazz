@@ -13,7 +13,7 @@ pipeline:
       - apt update
       - yes | apt install curl 
       # Install rustup
-      - curl https://sh.rustup.rs -sSf | sh -- -y
+      - curl https://sh.rustup.rs -sSf | sh -s -- -y
       # Install stable rust toolchain
       - rustup install stable
       # Build crate
