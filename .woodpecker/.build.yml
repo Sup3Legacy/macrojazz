@@ -10,5 +10,9 @@ pipeline:
   build:
     image: debian:stable-slim
     commands:
-      - echo hey
-      - sleep 5
+      # Install rustup
+      - curl https://sh.rustup.rs -sSf | sh
+      # Install stable rust toolchain
+      - rustup install stable
+      # Build crate
+      - cargo build --release
