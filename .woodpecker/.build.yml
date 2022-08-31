@@ -1,0 +1,12 @@
+# CI triggered on commit
+matrix:
+  platform:
+    - linux/amd64
+
+platform: ${platform}
+
+pipeline:
+  build:
+    image: rust
+    commands:
+      - cargo build --release
