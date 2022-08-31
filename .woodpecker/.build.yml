@@ -8,8 +8,9 @@ platform: ${platform}
 
 pipeline:
   build:
-    image: debian:stable-slim
+    image: debian:stable
     commands:
+      - apt install curl
       # Install rustup
       - curl https://sh.rustup.rs -sSf | sh
       # Install stable rust toolchain
