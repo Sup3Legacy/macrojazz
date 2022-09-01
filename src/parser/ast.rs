@@ -135,9 +135,29 @@ pub enum EarlyLhs {
 }
 
 #[derive(Debug)]
-pub struct EarlyRuntimeArg {
+pub struct EarlyArg {
     pub name: Located<EarlyIdentifier>,
-    pub typ: Option<Located<EarlyStaticExpression>>,
+    pub typ: Option<Located<EarlyType>>,
+}
+
+#[derive(Debug)]
+pub struct EarlyNodeInputType(pub Vec<Located<EarlyArg>>);
+
+#[derive(Debug)]
+pub enum EarlyWireSize {
+    Expression(EarlyStaticExpression),
+    Inferred,
+}
+
+#[derive(Debug)]
+pub enum EarlyType {
+    // A tuple type
+    Tuple(Vec<Located<EarlyType>>),
+    // The expression is the wire size. TODO generalize to multiple dimensions
+    Base(EarlyWireSize),
+    Unit,
+    // `_` type
+    // Infered,
 }
 
 #[derive(Debug)]
@@ -162,7 +182,7 @@ pub struct EarlyStaticArg {
 pub struct EarlyNode {
     pub name: Located<EarlyIdentifier>,
     pub static_args: Option<Located<Vec<Located<EarlyStaticArg>>>>,
-    pub runtime_args: Located<Vec<Located<EarlyRuntimeArg>>>,
-    pub runtime_outs: Located<Vec<Located<EarlyRuntimeArg>>>,
+    pub runtime_args: Located<EarlyNodeInputType>,
+    pub runtime_outs: Located<EarlyType>,
     pub block: Located<EarlyExpression>,
 }

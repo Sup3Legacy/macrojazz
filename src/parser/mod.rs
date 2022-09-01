@@ -24,7 +24,7 @@ peg::parser! {
                            ['a'..='z' | 'A'..='Z' |  '_' | '0'..='9']*)}
                 {?
                     match u {
-                        "let" | "in" | "node" | "if" | "else" | "true" | "false" | "int" | "bool" =>
+                        "_" | "let" | "in" | "node" | "if" | "else" | "true" | "false" | "int" | "bool" =>
                             Err("This cannot be used as an identifier"),
                         _ => Ok(())
                     }
@@ -429,28 +429,79 @@ peg::parser! {
 
             }
 
-        rule runtime_type(file: SourceId) -> Located<EarlyStaticExpression>
-            = _ start:position!() "[" exp:static_expression(file) "]" end:position!() _
+        rule wire_inferred(file: SourceId) -> Located<EarlyWireSize> =
+            start:position!() "_" end:position!()
             {
-                exp
+                Located::new(
+                    EarlyWireSize::Inferred,
+                    file,
+                    start,
+                    end
+                )
             }
 
-        rule runtime_type_annot(file: SourceId) -> Located<EarlyStaticExpression>
-            = _ start:position!() ":" _ r:runtime_type(file) end:position!() _
+        rule wire_expression(file: SourceId) -> Located<EarlyWireSize> =
+            s:static_expression(file)
+            {
+               s.map(|e| EarlyWireSize::Expression(e)) 
+            }
+
+        rule wire_size(file: SourceId) -> Located<EarlyWireSize> =
+            wire_inferred(file)
+            / wire_expression(file)
+
+        rule wire_type(file: SourceId) -> Located<EarlyType> = precedence! {
+            _ start:position!() "[" _ s:wire_size(file) _ "]" end:position!() _ 
+            {
+                Located::new(
+                    EarlyType::Base(s.get_inner()),
+                    file,
+                    start,
+                    end
+                )
+            }
+
+            --
+
+            _ start:position!() "(" t:wire_type(file) ** "," ")" end:position!() _
+            {
+                if t.len() == 0 {
+                    Located::new(
+                        EarlyType::Unit,
+                        file,
+                        start,
+                        end
+                    )
+                }
+                else if t.len() == 1 {
+                    t.into_iter().next().unwrap()
+                } else {
+                    Located::new(
+                        EarlyType::Tuple(t),
+                        file,
+                        start,
+                        end
+                    )
+                }
+            }
+        }
+
+        rule runtime_type_annot(file: SourceId) -> Located<EarlyType>
+            = _ start:position!() ":" _ r:wire_type(file) end:position!() _
             {
                 r
             }
 
-        rule runtime_arg(file: SourceId) -> Located<EarlyRuntimeArg>
+        rule runtime_arg(file: SourceId) -> Located<EarlyArg>
             = _ start:position!() i:ident(file) typ:runtime_type_annot(file)? end:position!() _
             {
-                Located::new(EarlyRuntimeArg { name: i, typ }, file, start, end)
+                Located::new(EarlyArg { name: i, typ }, file, start, end)
             }
 
-        rule runtime_arg_vec(file: SourceId) -> Located<Vec<Located<EarlyRuntimeArg>>>
+        rule runtime_arg_vec(file: SourceId) -> Located<EarlyNodeInputType>
             = start:position!() "(" args:runtime_arg(file) ** "," ")" end:position!()
             {
-                Located::new(args, file, start, end)
+                Located::new(EarlyNodeInputType(args), file, start, end)
             }
 
         rule static_type_bool(file:SourceId) -> Located<EarlyStaticBaseType>
@@ -543,7 +594,7 @@ peg::parser! {
 
         rule node(file: SourceId) -> Located<EarlyNode>
             = _ start:position!() "node" _ i:ident(file) s_args:static_arg_vec(file)? r_args:runtime_arg_vec(file)
-                _ "->" _ r_outs:runtime_arg_vec(file) _ "{" e:expression(file) "}" end:position!() _
+                _ "->" _ r_outs:wire_type(file) _ "{" e:expression(file) "}" end:position!() _
             {
                 Located::new(EarlyNode {
                     name: i,
@@ -574,7 +625,7 @@ mod test {
     #[test]
     fn io_node() {
         let code = r"
-node f(a: [1], b: [n]) -> (c, d:[42]) {
+node f(a: [1], b: [n]) -> [42] {
     1
 }
         ";
@@ -584,7 +635,7 @@ node f(a: [1], b: [n]) -> (c, d:[42]) {
     #[test]
     fn complex_idents() {
         let code = r"
-node f(a9A__: [1], __b: [n]) -> (c, d:[42]) {
+node f(a9A__: [1], __b: [n]) -> [42] {
     b
 }
         ";
@@ -594,7 +645,7 @@ node f(a9A__: [1], __b: [n]) -> (c, d:[42]) {
     #[test]
     fn let_in() {
         let code = r"
-node f(a9A__: [1], __b: [n]) -> (c, d:[42]) {
+node f(a9A__: [1], __b: [n]) -> [42] {
     let (a, b) = 12 in 
         let c = a & b in 
             c . 0x12
@@ -607,8 +658,19 @@ node f(a9A__: [1], __b: [n]) -> (c, d:[42]) {
     #[should_panic]
     fn broken_ident() {
         let code = r"
-node f(8a: [1], b: [n]) -> (c, d:[42]) {
+node f(8a: [1], b: [n]) -> [42] {
     let 12_a = 1 in 1
+}
+        ";
+        run(code);
+    }
+
+    #[test]
+    #[should_panic]
+    fn __as_ident() {
+        let code = r"
+node f(_: [2]) -> [42] {
+    1
 }
         ";
         run(code);
@@ -618,7 +680,7 @@ node f(8a: [1], b: [n]) -> (c, d:[42]) {
     #[should_panic]
     fn keyword_as_identifier() {
         let code = r"
-node if(a: [1], b: [n]) -> (c, d:[42]) {
+node if(a: [1], b: [n]) -> [42] {
 }
         ";
         run(code);
@@ -627,7 +689,7 @@ node if(a: [1], b: [n]) -> (c, d:[42]) {
     #[test]
     fn node_call() {
         let code = r"
-node f(a: [1], b: [n]) -> (c, d:[42]) {
+node f(a: [1], b: [n]) -> ((), [42]) {
     (f<n - 1, 12>(b, c[..=0]), @reg(a, b))
 }
         ";
@@ -647,7 +709,7 @@ node f<n, m: bool>() -> () {
     #[test]
     fn static_runtime_combined_node() {
         let code = r"
-node f<n, m: bool>(a: [n], b: [m]) -> (c: [n]) {
+node f<n, m: bool>(a: [n], b: [m]) -> ([n]) {
     42
 }
         ";
@@ -657,7 +719,7 @@ node f<n, m: bool>(a: [n], b: [m]) -> (c: [n]) {
     #[test]
     fn runtime_ops() {
         let code = r"
-node f<n>(a) -> (b) {
+node f<n>(a) -> () {
     (a . a) ^ c | d
 }
         ";
@@ -667,7 +729,7 @@ node f<n>(a) -> (b) {
     #[test]
     fn runtime_range() {
         let code = r"
-node f<n>(a) -> (b) {
+node f<n>(a) -> [_] {
     a[0..] .
     a[3..n] . 
     a[(n - 1)..=69 + n] .
@@ -680,7 +742,7 @@ node f<n>(a) -> (b) {
     #[test]
     fn runtime_ifthenelse() {
         let code = r"
-node f<n>(a) -> (b) {
+node f<n>(a) -> [n] {
     if n == 42 { a } else { ~a }
 }
         ";
@@ -690,7 +752,7 @@ node f<n>(a) -> (b) {
     #[test]
     fn complex_runtime() {
         let code = r"
-node f<n>(a) -> (b) {
+node f<n>(a) -> [n * 2] {
     let b = (a . 0b100110)[12..=n] & if n != 0xa2 { 0b1 } else { 0b10 } in
         g<if n == 42 { 12 } else { 0o123 }>(a[..34])
 }
@@ -701,7 +763,7 @@ node f<n>(a) -> (b) {
     #[test]
     fn refined_type() {
         let code = r"
-node f<n: {int: n == 0}, m: {n != m}, o: {bool: o}>(a) -> (b) {
+node f<n: {int: n == 0}, m: {n != m}, o: {bool: o}>(a) -> () {
     b
 }
         ";
@@ -711,11 +773,11 @@ node f<n: {int: n == 0}, m: {n != m}, o: {bool: o}>(a) -> (b) {
     #[test]
     fn multiple_nodes() {
         let code = r"
-node f<n>(a) -> (b) {
+node f<n>(a) -> [_] {
     a
 }
 
-node g<m>() -> () {
+node g<m>() -> [2] {
     b
 }
         ";
