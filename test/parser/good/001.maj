@@ -1,11 +1,10 @@
-// A node
-node dd<n : {int : n != 0}, a: ssd>(a: [n + 12][sd], c, k) -> (b: [n - 1], c, d) {
-    /// qsdqs
-    (b, c) = a[..n-0x12321];
-    if (1 == 0 & true) {
-        c = a[1..] . a[0] & @reg(sa) | vc(a, a);
+/// A node
+node dd<n : {int : n != 0}, a: ssd>(a: [n + 12][sd], c, k) -> ([n - 1], [n]) {
+    // qsdqs
+    if (n / 2 == 3) {
+        (a[..12] . b, @reg(n, k))
     } else {
-        c = 12;
+        f<n - 1>(c, k)
     }
 }
 

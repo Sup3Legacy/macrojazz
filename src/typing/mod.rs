@@ -1,1 +1,2 @@
+mod smt;
 mod warnings;

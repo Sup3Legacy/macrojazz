@@ -1,7 +1,7 @@
 use super::*;
 
-use ariadne::{Color, Config, Label, Report, ReportKind, Source};
-use yansi::*;
+
+
 
 /// Type of a compiler report. Used to debug info
 /// Not to be confused with source-bound warnings and errors,

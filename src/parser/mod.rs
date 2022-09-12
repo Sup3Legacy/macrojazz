@@ -29,7 +29,7 @@ peg::parser! {
                         _ => Ok(())
                     }
                 }
-        rule ident(file: SourceId) -> Located<EarlyIdentifier>
+        rule ident(file: SourceId) -> EarlyLocated<EarlyIdentifier>
             = _ start:position!()
 
                  (&ident_internal(file)
@@ -40,71 +40,71 @@ peg::parser! {
                     / expected!("identifier"))
                 end:position!() _
                 {
-                     Located::new(v.to_string(), file, start, end)
+                     EarlyLocated::new(v.to_string(), file, start, end)
                 }
-        rule int10_literal(file: SourceId) -> Located<EarlyLiteral>
+        rule int10_literal(file: SourceId) -> EarlyLocated<EarlyLiteral>
             = _ start:position!()
                 i:(quiet!{$(['0'..='9']*)} / expected!("integer")) end:position!() _
             {?
-                Ok(Located::new(EarlyLiteral::Int(i.parse().or(Err("Int problem"))?),
+                Ok(EarlyLocated::new(EarlyLiteral::Int(i.parse().or(Err("Int problem"))?),
                 file, start, end))
             }
 
-        rule int16_literal(file: SourceId) -> Located<EarlyLiteral>
+        rule int16_literal(file: SourceId) -> EarlyLocated<EarlyLiteral>
             = _ start:position!() "0x" i:$(['0'..='9' | 'a'..='f' | 'A'..='F']*) end:position!() _
             {?
-                Ok(Located::new(EarlyLiteral::Int(u64::from_str_radix(i, 16).or(Err("Int problem"))?),
+                Ok(EarlyLocated::new(EarlyLiteral::Int(u64::from_str_radix(i, 16).or(Err("Int problem"))?),
                 file, start, end))
             }
 
-        rule int8_literal(file: SourceId) -> Located<EarlyLiteral>
+        rule int8_literal(file: SourceId) -> EarlyLocated<EarlyLiteral>
             = _ start:position!() "0o" i:$(['0'..='7']*) end:position!() _
             {?
-                Ok(Located::new(EarlyLiteral::Int(u64::from_str_radix(i, 8).or(Err("Int problem"))?),
+                Ok(EarlyLocated::new(EarlyLiteral::Int(u64::from_str_radix(i, 8).or(Err("Int problem"))?),
                 file, start, end))
             }
 
-        rule int2_literal(file: SourceId) -> Located<EarlyLiteral>
+        rule int2_literal(file: SourceId) -> EarlyLocated<EarlyLiteral>
             = _ start:position!() "0b" i:$(['0'..='1']*) end:position!() _
             {?
-                Ok(Located::new(EarlyLiteral::Int(u64::from_str_radix(i, 2).or(Err("Int problem"))?),
+                Ok(EarlyLocated::new(EarlyLiteral::Int(u64::from_str_radix(i, 2).or(Err("Int problem"))?),
                 file, start, end))
             }
 
-        rule int_literal(file: SourceId) -> Located<EarlyLiteral>
+        rule int_literal(file: SourceId) -> EarlyLocated<EarlyLiteral>
             = quiet!{ int2_literal(file)
             / int8_literal(file)
             / int16_literal(file)
             / int10_literal(file) }
             / expected!("integer litteral.")
 
-        rule bool_true_literal(file: SourceId) -> Located<EarlyStaticLiteral>
+        rule bool_true_literal(file: SourceId) -> EarlyLocated<EarlyStaticLiteral>
             = _ start:position!() "true" end:position!() _
             {
-                Located::new(EarlyStaticLiteral::Bool(true), file, start, end)
+                EarlyLocated::new(EarlyStaticLiteral::Bool(true), file, start, end)
             }
 
-        rule bool_false_literal(file: SourceId) -> Located<EarlyStaticLiteral>
+        rule bool_false_literal(file: SourceId) -> EarlyLocated<EarlyStaticLiteral>
             = _ start:position!() "false" end:position!() _
             {
-                Located::new(EarlyStaticLiteral::Bool(false), file, start, end)
+                EarlyLocated::new(EarlyStaticLiteral::Bool(false), file, start, end)
             }
 
-        rule bool_literal(file: SourceId) -> Located<EarlyStaticLiteral>
+        rule bool_literal(file: SourceId) -> EarlyLocated<EarlyStaticLiteral>
             = bool_true_literal(file)
             / bool_false_literal(file)
 
-        rule static_literal(file: SourceId) -> Located<EarlyStaticLiteral>
+        rule static_literal(file: SourceId) -> EarlyLocated<EarlyStaticLiteral>
             = bool_literal(file)
             / (i:int_literal(file) { i.map(|EarlyLiteral::Int(int)| EarlyStaticLiteral::Int(int) ) })
 
-        rule literal(file: SourceId) -> Located<EarlyLiteral>
+        rule literal(file: SourceId) -> EarlyLocated<EarlyLiteral>
             = int_literal(file)
 
-        rule incl_range(file: SourceId) -> Located<EarlyIndex>
+        rule incl_range(file: SourceId) -> EarlyLocated<EarlyIndex>
             = _ start:position!() e1:static_expression(file)? _ "..=" e2:static_expression(file)? end:position!() _
             {
-                Located::new(
+                EarlyLocated::new(
                     EarlyIndex::Range {
                         lhs: e1,
                         rhs: e2,
@@ -115,10 +115,10 @@ peg::parser! {
                     end)
             }
 
-        rule excl_range(file: SourceId) -> Located<EarlyIndex>
+        rule excl_range(file: SourceId) -> EarlyLocated<EarlyIndex>
             = _ start:position!() e1:static_expression(file)? _ ".." !"=" e2:static_expression(file)? end:position!() _
             {
-                Located::new(
+                EarlyLocated::new(
                     EarlyIndex::Range {
                         lhs: e1,
                         rhs: e2,
@@ -129,16 +129,16 @@ peg::parser! {
                     end)
             }
 
-        rule index(file: SourceId) -> Located<EarlyIndex>
+        rule index(file: SourceId) -> EarlyLocated<EarlyIndex>
             = incl_range(file)
             / excl_range(file)
-            / (e: static_expression(file) { e.map(|exp| EarlyIndex::Simple(exp)) })
+            / (e: static_expression(file) { e.map(EarlyIndex::Simple) })
 
-        rule static_expression(file: SourceId) -> Located<EarlyStaticExpression> = precedence! {
+        rule static_expression(file: SourceId) -> EarlyLocated<EarlyStaticExpression> = precedence! {
                 start:position!() "!" end:position!() _ x:@ {
                     let loc = x.get_loc();
-                    Located::from_range(EarlyStaticExpression::MonOp {
-                        operator: Located::empty_from_range(EarlyStaticMonOp::Not, start..end),
+                    EarlyLocated::from_range(EarlyStaticExpression::MonOp {
+                        operator: EarlyLocated::from_range(EarlyStaticMonOp::Not, file, start..end),
                         operand: Box::new(x),
                     }, file, loc.extend(start, end))
                 }
@@ -147,8 +147,8 @@ peg::parser! {
 
                 start:position!() "-" end:position!() _ x:@ {
                     let loc = x.get_loc();
-                    Located::from_range(EarlyStaticExpression::MonOp {
-                        operator: Located::empty_from_range(EarlyStaticMonOp::Minus, start..end),
+                    EarlyLocated::from_range(EarlyStaticExpression::MonOp {
+                        operator: EarlyLocated::from_range(EarlyStaticMonOp::Minus, file, start..end),
                         operand: Box::new(x),
                     }, file, loc.extend(start, end))
                 }
@@ -158,8 +158,8 @@ peg::parser! {
                x:(@) _ start:position!() "==" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
-                    Located::from_range(EarlyStaticExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyStaticBinOp::Equals, start..end),
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Equals, file, start..end),
                         lhs: Box::new(x),
                         rhs: Box::new(y),
                     }, file, loc_x.union(loc_y))
@@ -168,8 +168,8 @@ peg::parser! {
                x:(@) _ start:position!() "!=" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
-                    Located::from_range(EarlyStaticExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyStaticBinOp::NEquals, start..end),
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::NEquals, file, start..end),
                         lhs: Box::new(x),
                         rhs: Box::new(y),
                     }, file, loc_x.union(loc_y))
@@ -180,8 +180,8 @@ peg::parser! {
                x:(@) _ start:position!() "+" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
-                    Located::from_range(EarlyStaticExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyStaticBinOp::Plus, start..end),
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Plus, file, start..end),
                         lhs: Box::new(x),
                         rhs: Box::new(y),
                     }, file, loc_x.union(loc_y))
@@ -190,8 +190,8 @@ peg::parser! {
                x:(@) _ start:position!() "-" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
-                    Located::from_range(EarlyStaticExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyStaticBinOp::Minus, start..end),
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Minus, file, start..end),
                         lhs: Box::new(x),
                         rhs: Box::new(y),
                     }, file, loc_x.union(loc_y))
@@ -202,8 +202,8 @@ peg::parser! {
                x:(@) _ start:position!() "*" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
-                    Located::from_range(EarlyStaticExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyStaticBinOp::Mult, start..end),
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Mult, file, start..end),
                         lhs: Box::new(x),
                         rhs: Box::new(y),
                     }, file, loc_x.union(loc_y))
@@ -212,8 +212,8 @@ peg::parser! {
                x:(@) _ start:position!() "/" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
-                    Located::from_range(EarlyStaticExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyStaticBinOp::Div, start..end),
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Div, file, start..end),
                         lhs: Box::new(x),
                         rhs: Box::new(y),
                     }, file, loc_x.union(loc_y))
@@ -222,8 +222,8 @@ peg::parser! {
                x:(@) _ start:position!() "%" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
-                    Located::from_range(EarlyStaticExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyStaticBinOp::Modulo, start..end),
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Modulo, file, start..end),
                         lhs: Box::new(x),
                         rhs: Box::new(y),
                     }, file, loc_x.union(loc_y))
@@ -235,13 +235,13 @@ peg::parser! {
                 l:static_literal(file)
                     {
                         let loc = l.get_loc();
-                        Located::from_range(EarlyStaticExpression::Literal(l.get_inner()), file, loc.get_range())
+                        EarlyLocated::from_range(EarlyStaticExpression::Literal(l.get_inner()), file, loc.get_range())
                     }
 
                 i:ident(file)
                     {
                         let loc = i.get_loc();
-                        Located::from_range(EarlyStaticExpression::Ident(i.get_inner()), file, loc.get_range())
+                        EarlyLocated::from_range(EarlyStaticExpression::Ident(i.get_inner()), file, loc.get_range())
                     }
 
                 --
@@ -250,7 +250,7 @@ peg::parser! {
                     if_block:static_expression(file) "}" _ "else"
                     _ "{" else_block:static_expression(file) "}" end:position!() _
                     {
-                        Located::new(
+                        EarlyLocated::new(
                             EarlyStaticExpression::IfThenElse {
                                 condition: Box::new(s),
                                 if_block: Box::new(if_block),
@@ -272,11 +272,11 @@ peg::parser! {
 
             }
 
-        rule expression(file: SourceId) -> Located<EarlyExpression> = precedence! {
+        rule expression(file: SourceId) -> EarlyLocated<EarlyExpression> = precedence! {
                 start:position!() "~" end:position!() _ x:@ {
                     let loc = x.get_loc();
-                    Located::from_range(EarlyExpression::MonOp {
-                        operator: Located::empty_from_range(EarlyMonOp::BitNot, start..end),
+                    EarlyLocated::from_range(EarlyExpression::MonOp {
+                        operator: EarlyLocated::from_range(EarlyMonOp::BitNot, file, start..end),
                         operand: Box::new(x),
                     }, file, loc.extend(start, end))
                 }
@@ -286,8 +286,8 @@ peg::parser! {
                x:(@) _ start:position!() "|" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
-                    Located::from_range(EarlyExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyBinOp::BitOr, start..end),
+                    EarlyLocated::from_range(EarlyExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyBinOp::BitOr, file, start..end),
                         lhs: Box::new(x),
                         rhs: Box::new(y),
                     }, file, loc_x.union(loc_y))
@@ -299,8 +299,8 @@ peg::parser! {
                x:(@) _ start:position!() "&" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
-                    Located::from_range(EarlyExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyBinOp::BitAnd, start..end),
+                    EarlyLocated::from_range(EarlyExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyBinOp::BitAnd, file, start..end),
                         lhs: Box::new(x),
                         rhs: Box::new(y),
                     }, file, loc_x.union(loc_y))
@@ -309,8 +309,8 @@ peg::parser! {
                x:(@) _ start:position!() "^" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
-                    Located::from_range(EarlyExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyBinOp::BitXOr, start..end),
+                    EarlyLocated::from_range(EarlyExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyBinOp::BitXOr, file, start..end),
                         lhs: Box::new(x),
                         rhs: Box::new(y),
                     }, file, loc_x.union(loc_y))
@@ -321,8 +321,8 @@ peg::parser! {
                x:(@) _ start:position!() "." end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
-                    Located::from_range(EarlyExpression::BinOp {
-                        operator: Located::empty_from_range(EarlyBinOp::Concat, start..end),
+                    EarlyLocated::from_range(EarlyExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyBinOp::Concat, file, start..end),
                         lhs: Box::new(x),
                         rhs: Box::new(y),
                     }, file, loc_x.union(loc_y))
@@ -337,12 +337,12 @@ peg::parser! {
                    "(" _ r_args:expression(file) ** "," _ ")"
                    end:position!() _ {
                          println!("Parsing function call.");
-                         Located::new(
+                         EarlyLocated::new(
                              EarlyExpression::FuncCall {
                                  func_name: i,
                                  static_params: s_args,
                                  runtime_params: r_args,
-                                 builtin: Located::new(
+                                 builtin: EarlyLocated::new(
                                      builtin.is_some(),
                                      file,
                                      start,
@@ -355,7 +355,7 @@ peg::parser! {
                 e:@ "[" i:index(file) "]" end:position!() _
                 {
                     let loc = e.get_loc();
-                    Located::from_range(
+                    EarlyLocated::from_range(
                         EarlyExpression::Index {
                             lhs: Box::new(e),
                             index: Box::new(i),
@@ -369,13 +369,13 @@ peg::parser! {
                 l:literal(file)
                     {
                         let loc = l.get_loc();
-                        Located::from_range(EarlyExpression::Literal(l.get_inner()), file, loc.get_range())
+                        EarlyLocated::from_range(EarlyExpression::Literal(l.get_inner()), file, loc.get_range())
                     }
 
                 i:ident(file)
                     {
                         let loc = i.get_loc();
-                        Located::from_range(EarlyExpression::Ident(i.get_inner()), file, loc.get_range())
+                        EarlyLocated::from_range(EarlyExpression::Ident(i.get_inner()), file, loc.get_range())
                     }
 
                 --
@@ -385,7 +385,7 @@ peg::parser! {
                     "else" _ "{" _ else_block:expression(file) _ "}" _
                     end:position!() _
                     {
-                        Located::new(
+                        EarlyLocated::new(
                             EarlyExpression::IfThenElse {
                                 condition: Box::new(s),
                                 if_block: Box::new(if_block),
@@ -402,7 +402,7 @@ peg::parser! {
                     "in" _ s:expression(file)
                     end:position!() _
                     {
-                        Located::new(
+                        EarlyLocated::new(
                             EarlyExpression::Let {
                                 lhs: r,
                                 rhs: Box::new(e),
@@ -419,7 +419,7 @@ peg::parser! {
                     if e.len() == 1 {
                         e.into_iter().next().unwrap()
                     } else {
-                        Located::new(
+                        EarlyLocated::new(
                             EarlyExpression::Tuple(e),
                             file,
                             start,
@@ -429,10 +429,10 @@ peg::parser! {
 
             }
 
-        rule wire_inferred(file: SourceId) -> Located<EarlyWireSize> =
+        rule wire_inferred(file: SourceId) -> EarlyLocated<EarlyWireSize> =
             start:position!() "_" end:position!()
             {
-                Located::new(
+                EarlyLocated::new(
                     EarlyWireSize::Inferred,
                     file,
                     start,
@@ -440,20 +440,20 @@ peg::parser! {
                 )
             }
 
-        rule wire_expression(file: SourceId) -> Located<EarlyWireSize> =
+        rule wire_expression(file: SourceId) -> EarlyLocated<EarlyWireSize> =
             s:static_expression(file)
             {
-               s.map(|e| EarlyWireSize::Expression(e)) 
+               s.map(EarlyWireSize::Expression)
             }
 
-        rule wire_size(file: SourceId) -> Located<EarlyWireSize> =
+        rule wire_size(file: SourceId) -> EarlyLocated<EarlyWireSize> =
             wire_inferred(file)
             / wire_expression(file)
 
-        rule wire_type(file: SourceId) -> Located<EarlyType> = precedence! {
-            _ start:position!() "[" _ s:wire_size(file) _ "]" end:position!() _ 
+        rule wire_type(file: SourceId) -> EarlyLocated<EarlyType> = precedence! {
+            _ start:position!() "[" _ s:wire_size(file) _ "]" end:position!() _
             {
-                Located::new(
+                EarlyLocated::new(
                     EarlyType::Base(s.get_inner()),
                     file,
                     start,
@@ -465,8 +465,8 @@ peg::parser! {
 
             _ start:position!() "(" t:wire_type(file) ** "," ")" end:position!() _
             {
-                if t.len() == 0 {
-                    Located::new(
+                if t.is_empty() {
+                    EarlyLocated::new(
                         EarlyType::Unit,
                         file,
                         start,
@@ -476,7 +476,7 @@ peg::parser! {
                 else if t.len() == 1 {
                     t.into_iter().next().unwrap()
                 } else {
-                    Located::new(
+                    EarlyLocated::new(
                         EarlyType::Tuple(t),
                         file,
                         start,
@@ -486,45 +486,45 @@ peg::parser! {
             }
         }
 
-        rule runtime_type_annot(file: SourceId) -> Located<EarlyType>
+        rule runtime_type_annot(file: SourceId) -> EarlyLocated<EarlyType>
             = _ start:position!() ":" _ r:wire_type(file) end:position!() _
             {
                 r
             }
 
-        rule runtime_arg(file: SourceId) -> Located<EarlyArg>
+        rule runtime_arg(file: SourceId) -> EarlyLocated<EarlyArg>
             = _ start:position!() i:ident(file) typ:runtime_type_annot(file)? end:position!() _
             {
-                Located::new(EarlyArg { name: i, typ }, file, start, end)
+                EarlyLocated::new(EarlyArg { name: i, typ }, file, start, end)
             }
 
-        rule runtime_arg_vec(file: SourceId) -> Located<EarlyNodeInputType>
+        rule runtime_arg_vec(file: SourceId) -> EarlyLocated<EarlyNodeInputType>
             = start:position!() "(" args:runtime_arg(file) ** "," ")" end:position!()
             {
-                Located::new(EarlyNodeInputType(args), file, start, end)
+                EarlyLocated::new(EarlyNodeInputType(args), file, start, end)
             }
 
-        rule static_type_bool(file:SourceId) -> Located<EarlyStaticBaseType>
+        rule static_type_bool(file:SourceId) -> EarlyLocated<EarlyStaticBaseType>
             = _ start:position!() _ "bool" end:position!() _
             {
-                Located::new(EarlyStaticBaseType::Bool, file, start, end)
+                EarlyLocated::new(EarlyStaticBaseType::Bool, file, start, end)
             }
 
-        rule static_type_int(file:SourceId) -> Located<EarlyStaticBaseType>
+        rule static_type_int(file:SourceId) -> EarlyLocated<EarlyStaticBaseType>
             = _ start:position!() _ "int" end:position!() _
             {
-                Located::new(EarlyStaticBaseType::Int, file, start, end)
+                EarlyLocated::new(EarlyStaticBaseType::Int, file, start, end)
             }
 
-        rule static_type_base(file: SourceId) -> Located<EarlyStaticBaseType>
+        rule static_type_base(file: SourceId) -> EarlyLocated<EarlyStaticBaseType>
             = static_type_int(file)
             / static_type_bool(file)
 
-        rule static_type_refined(file: SourceId) -> Located<EarlyStaticType>
+        rule static_type_refined(file: SourceId) -> EarlyLocated<EarlyStaticType>
             = _ ":" _ start:position!() "{" base:(base:static_type_base(file) _ ":" { base })? _
             e:static_expression(file)? "}" end:position!() _
             {
-                Located::new(
+                EarlyLocated::new(
                     EarlyStaticType {
                         base,
                         refinement: e,
@@ -535,10 +535,10 @@ peg::parser! {
                     )
             }
 
-        rule static_type_simple(file: SourceId) -> Located<EarlyStaticType>
+        rule static_type_simple(file: SourceId) -> EarlyLocated<EarlyStaticType>
             = _ ":" _ start:position!() t:static_type_base(file) end:position!() _
             {
-                Located::new(
+                EarlyLocated::new(
                     EarlyStaticType {
                         base: Some(t),
                         refinement: None,
@@ -549,27 +549,27 @@ peg::parser! {
                     )
             }
 
-        rule static_type(file: SourceId) -> Option<Located<EarlyStaticType>>
+        rule static_type(file: SourceId) -> Option<EarlyLocated<EarlyStaticType>>
             = s:static_type_simple(file) { Some(s) }
             / s:static_type_refined(file) { Some(s) }
             / { None }
 
-        rule static_arg(file: SourceId) -> Located<EarlyStaticArg>
+        rule static_arg(file: SourceId) -> EarlyLocated<EarlyStaticArg>
             = _ start:position!() i:ident(file) _ t:static_type(file) end:position!() _
             {
-                Located::new(EarlyStaticArg { name: i, typ: t }, file, start, end)
+                EarlyLocated::new(EarlyStaticArg { name: i, typ: t }, file, start, end)
             }
 
-        rule static_arg_vec(file: SourceId) -> Located<Vec<Located<EarlyStaticArg>>>
+        rule static_arg_vec(file: SourceId) -> EarlyLocated<Vec<EarlyLocated<EarlyStaticArg>>>
             = _ start:position!() "<" _ a:static_arg(file) ** "," _ ">" end:position!()
             {
-                Located::new(a, file, start, end)
+                EarlyLocated::new(a, file, start, end)
             }
 
-        rule lhs_ident(file: SourceId) -> Located<EarlyLhs>
+        rule lhs_ident(file: SourceId) -> EarlyLocated<EarlyLhs>
             = _ start:position!() i:ident(file) end:position!() _
             {
-                Located::new(
+                EarlyLocated::new(
                     EarlyLhs::Ident(i.get_inner()),
                     file,
                     start,
@@ -577,10 +577,10 @@ peg::parser! {
                 )
             }
 
-        rule lhs_tuple(file: SourceId) -> Located<EarlyLhs>
+        rule lhs_tuple(file: SourceId) -> EarlyLocated<EarlyLhs>
             = _ start:position!() "(" _ i:ident(file) ** "," _ ")" end:position!() _
             {
-                Located::new(
+                EarlyLocated::new(
                     EarlyLhs::Tuple(i),
                     file,
                     start,
@@ -588,15 +588,15 @@ peg::parser! {
                 )
             }
 
-        rule lhs(file: SourceId) -> Located<EarlyLhs>
+        rule lhs(file: SourceId) -> EarlyLocated<EarlyLhs>
             = lhs_tuple(file)
             / lhs_ident(file)
 
-        rule node(file: SourceId) -> Located<EarlyNode>
+        rule node(file: SourceId) -> EarlyLocated<EarlyNode>
             = _ start:position!() "node" _ i:ident(file) s_args:static_arg_vec(file)? r_args:runtime_arg_vec(file)
                 _ "->" _ r_outs:wire_type(file) _ "{" e:expression(file) "}" end:position!() _
             {
-                Located::new(EarlyNode {
+                EarlyLocated::new(EarlyNode {
                     name: i,
                     static_args: s_args,
                     runtime_args: r_args,

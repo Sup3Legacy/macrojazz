@@ -13,8 +13,9 @@ impl std::fmt::Debug for Location {
 }
 
 #[derive(Debug, Hash, PartialEq, Eq)]
-pub struct Located<T> {
+pub struct Located<U, T> {
     inner: T,
+    custom: U,
     loc: Location,
 }
 
@@ -57,24 +58,32 @@ impl Location {
     }
 }
 
-impl<T> Located<T> {
-    pub fn new(inner: T, file: SourceId, start: usize, end: usize) -> Self {
+impl<U, T> Located<U, T> {
+    pub fn __new(inner: T, custom: U, file: SourceId, start: usize, end: usize) -> Self {
         Self {
             inner,
+            custom,
             loc: Location::new(file, start, end),
         }
     }
 
-    pub fn from_range(inner: T, file: SourceId, range: std::ops::Range<usize>) -> Self {
+    pub fn __from_range(
+        inner: T,
+        custom: U,
+        file: SourceId,
+        range: std::ops::Range<usize>,
+    ) -> Self {
         Self {
             inner,
+            custom,
             loc: Location::from_range(file, range),
         }
     }
 
-    pub fn empty_from_range(inner: T, range: std::ops::Range<usize>) -> Self {
+    pub fn empty_from_range(inner: T, custom: U, range: std::ops::Range<usize>) -> Self {
         Self {
             inner,
+            custom,
             loc: Location::empty_from_range(range),
         }
     }
@@ -87,12 +96,14 @@ impl<T> Located<T> {
         self.loc.clone()
     }
 
-    pub fn map<U, F>(self, f: F) -> Located<U>
+    // TODO: Also map the custom field
+    pub fn map<V, F>(self, f: F) -> Located<U, V>
     where
-        F: FnOnce(T) -> U,
+        F: FnOnce(T) -> V,
     {
         Located {
             inner: f(self.inner),
+            custom: self.custom,
             loc: self.loc,
         }
     }

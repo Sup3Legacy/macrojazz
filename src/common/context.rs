@@ -55,7 +55,7 @@ impl CompileContext {
 
     pub fn parse(&mut self) -> Result<Vec<CompilerReport>, Vec<CompilerReport>> {
         let mut success = true;
-        let mut reports = Vec::new();
+        let reports = Vec::new();
         let mut program: EarlyProgram = vec![];
 
         for (idx, (path, source)) in self.sources.iter() {
