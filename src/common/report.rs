@@ -1,8 +1,5 @@
 use super::*;
 
-
-
-
 /// Type of a compiler report. Used to debug info
 /// Not to be confused with source-bound warnings and errors,
 /// that are handled by `ariadne`

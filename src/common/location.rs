@@ -6,12 +6,6 @@ pub struct Location {
     range: std::ops::Range<usize>,
 }
 
-impl std::fmt::Debug for Location {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        write!(f, "range: {:?}", self.range)
-    }
-}
-
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct Located<U, T> {
     inner: T,
@@ -55,6 +49,12 @@ impl Location {
 
     pub fn union(self, other: Self) -> std::ops::Range<usize> {
         (self.range.start.min(other.range.start))..(self.range.end.min(other.range.end))
+    }
+}
+
+impl std::fmt::Debug for Location {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "range: {:?}", self.range)
     }
 }
 

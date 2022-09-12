@@ -1,4 +1,5 @@
 use anyhow::Result;
+use ariadne::Cache;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct SourceId(usize);
@@ -16,6 +17,18 @@ impl SourceId {
 // TODO: Implement ariadne::Cache for this struct.
 pub struct SourceCache {
     sources: Vec<(String, String)>,
+}
+
+// TODO: Populate this thing
+// The issue is that `fetch` must return an `Result<&ariadne::Source, _>`
+impl Cache<SourceId> for SourceCache {
+    fn fetch(&mut self, _id: &SourceId) -> Result<&ariadne::Source, Box<dyn std::fmt::Debug + '_>> {
+        todo!()
+    }
+
+    fn display<'a>(&self, _id: &'a SourceId) -> Option<Box<dyn std::fmt::Display + 'a>> {
+        todo!()
+    }
 }
 
 impl SourceCache {
