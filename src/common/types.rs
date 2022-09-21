@@ -36,12 +36,3 @@ pub enum WireTypeBinOp {
     Times,
     Modulo,
 }
-
-pub struct WireTypeToken {
-
-}
-
-pub struct WireTypeContext {
-    node: TypeSmallVec<WireTypeInternal>,
-}
-
