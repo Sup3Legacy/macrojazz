@@ -1,7 +1,7 @@
 use super::*;
 use crate::{parser::ast::EarlyProgram, single_label};
 use anyhow::Result;
-use ariadne::{Color, Config, Label, Report, ReportKind, Source};
+use ariadne::{Color, Config, Label, Report, ReportKind, Source, Fmt};
 use peg;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -72,7 +72,7 @@ impl CompileContext {
                         location.offset,
                         location.offset + 1,
                         "Parsing",
-                        format!("Expected {}", expected)
+                        format!("Expected {}", expected.to_string().as_str().fg(Color::Red))
                     );
 
                     success = false;
