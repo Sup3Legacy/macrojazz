@@ -47,6 +47,7 @@ pub enum EarlyStaticBinOp {
     Div,
     Mult,
     Modulo,
+    Exp,
     Or,
     And,
     Equals,

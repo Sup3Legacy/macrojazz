@@ -229,6 +229,16 @@ peg::parser! {
                     }, file, loc_x.union(loc_y))
                 }
 
+               x:(@) _ start:position!() "^" end:position!() _ y:@ {
+                    let loc_x = x.get_loc();
+                    let loc_y = y.get_loc();
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Exp, file, start..end),
+                        lhs: Box::new(x),
+                        rhs: Box::new(y),
+                    }, file, loc_x.union(loc_y))
+                }
+
 
                  --
 
