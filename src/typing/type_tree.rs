@@ -3,6 +3,7 @@ use crate::parser::ast::*;
 use crate::typing::*;
 use crate::Located;
 use std::collections::HashMap;
+use z3::ast::Ast;
 use z3::ast::{Bool, Int};
 use z3::*;
 
@@ -13,10 +14,19 @@ pub enum TTBinOp {
     Mult,
     Exp,
     Div,
+    Modulo,
 
     Or,
     And,
     XOr,
+
+    Ge,
+    Gt,
+    Le,
+    Lt,
+
+    Eq,
+    NEq,
 }
 
 impl TTBinOp {
@@ -30,6 +40,13 @@ impl TTBinOp {
             StaticBinop::Or => Self::Or,
             StaticBinop::And => Self::And,
             StaticBinop::XOr => Self::XOr,
+            StaticBinop::Modulo => Self::Modulo,
+            StaticBinop::Ge => Self::Ge,
+            StaticBinop::Gt => Self::Gt,
+            StaticBinop::Le => Self::Le,
+            StaticBinop::Lt => Self::Lt,
+            StaticBinop::Eq => Self::Eq,
+            StaticBinop::NEq => Self::NEq,
         }
     }
 }
@@ -116,11 +133,7 @@ impl<'a> TTz3<'a> {
 impl TT {
     // TODO: z3_env will hold the mapping from identifier to z3 context variable references
     /// Turn TT to z3 term
-    pub fn to_z3<'a>(
-        self,
-        ctx: &'a z3::Context,
-        z3_env: &HashMap<String, TTz3<'a>>,
-    ) -> TTz3<'a> {
+    pub fn to_z3<'a>(self, ctx: &'a z3::Context, z3_env: &HashMap<String, TTz3<'a>>) -> TTz3<'a> {
         match self {
             TT::Ident(_) => todo!(),
             TT::IntLiteral(i) => TTz3::Int(z3::ast::Int::from_u64(ctx, i)),
@@ -149,6 +162,16 @@ impl TT {
                     // i.power(j) returns a Real...
                     (TTz3::Int(i), TTBinOp::Exp, TTz3::Int(j)) => todo!(),
                     (TTz3::Int(i), TTBinOp::Div, TTz3::Int(j)) => TTz3::Int(i.div(&j)),
+                    (TTz3::Int(i), TTBinOp::Modulo, TTz3::Int(j)) => TTz3::Int(i.modulo(&j)),
+
+                    (TTz3::Int(i), TTBinOp::Ge, TTz3::Int(j)) => TTz3::Bool(i.ge(&j)),
+                    (TTz3::Int(i), TTBinOp::Gt, TTz3::Int(j)) => TTz3::Bool(i.gt(&j)),
+                    (TTz3::Int(i), TTBinOp::Le, TTz3::Int(j)) => TTz3::Bool(i.le(&j)),
+                    (TTz3::Int(i), TTBinOp::Lt, TTz3::Int(j)) => TTz3::Bool(i.lt(&j)),
+
+                    (TTz3::Int(i), TTBinOp::Eq, TTz3::Int(j)) => TTz3::Bool(i._eq(&j)),
+                    (TTz3::Int(i), TTBinOp::NEq, TTz3::Int(j)) => TTz3::Bool(i._eq(&j).not()),
+
                     (TTz3::Bool(b), TTBinOp::Or, TTz3::Bool(v)) => {
                         TTz3::Bool(Bool::or(ctx, &[&b, &v]))
                     }
@@ -156,6 +179,9 @@ impl TT {
                         TTz3::Bool(Bool::and(ctx, &[&b, &v]))
                     }
                     (TTz3::Bool(b), TTBinOp::XOr, TTz3::Bool(v)) => TTz3::Bool(b.xor(&v)),
+
+                    (TTz3::Bool(b), TTBinOp::Eq, TTz3::Bool(v)) => TTz3::Bool(b._eq(&v)),
+                    (TTz3::Bool(b), TTBinOp::NEq, TTz3::Bool(v)) => TTz3::Bool(b._eq(&v).not()),
                     _ => unreachable!(),
                 }
             }
@@ -170,9 +196,7 @@ impl TT {
 
                 // TODO: ife in static expressions not supported for now
                 todo!()
-            },
+            }
         }
     }
 }
-
-
