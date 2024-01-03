@@ -22,13 +22,10 @@ pub type EarlyStaticParams = Vec<EarlyLocated<EarlyStaticExpression>>;
 
 pub type EarlyProgram = Vec<EarlyLocated<EarlyNode>>;
 
-pub struct EarlyRuntimeTypeDef {
-
-}
+pub struct EarlyRuntimeTypeDef {}
 
 pub struct EarlyStaticTypeDef {
-   ident: EarlyLocated<EarlyIdentifier>,
-
+    ident: EarlyLocated<EarlyIdentifier>,
 }
 
 /// A 2-adic operator
@@ -52,6 +49,11 @@ pub enum EarlyStaticBinOp {
     And,
     Equals,
     NEquals,
+
+    Ge,
+    Gt,
+    Le,
+    Lt,
 }
 
 #[derive(Clone, Debug)]

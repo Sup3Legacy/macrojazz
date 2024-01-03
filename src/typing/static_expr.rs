@@ -41,10 +41,40 @@ pub enum StaticBinop {
     Minus,
     Div,
     Exp,
+    Modulo,
+
+    Ge,
+    Gt,
+    Le,
+    Lt,
 
     Or,
     And,
     XOr,
+
+    Eq,
+    NEq,
+}
+
+impl StaticBinop {
+    pub fn from_early(eb: EarlyStaticBinOp) -> Self {
+        match eb {
+            EarlyStaticBinOp::Plus => Self::Plus,
+            EarlyStaticBinOp::Minus => Self::Minus,
+            EarlyStaticBinOp::Div => Self::Div,
+            EarlyStaticBinOp::Mult => Self::Mult,
+            EarlyStaticBinOp::Modulo => Self::Modulo,
+            EarlyStaticBinOp::Exp => Self::Exp,
+            EarlyStaticBinOp::Or => Self::Or,
+            EarlyStaticBinOp::And => Self::And,
+            EarlyStaticBinOp::Equals => Self::Eq,
+            EarlyStaticBinOp::NEquals => Self::NEq,
+            EarlyStaticBinOp::Ge => Self::Ge,
+            EarlyStaticBinOp::Gt => Self::Gt,
+            EarlyStaticBinOp::Le => Self::Le,
+            EarlyStaticBinOp::Lt => Self::Lt,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -129,7 +159,52 @@ pub fn type_static(
                 )),
             }
         }
-        EarlyStaticExpression::BinOp { lhs, rhs, operator } => todo!(),
+        EarlyStaticExpression::BinOp { lhs, rhs, operator } => {
+            let typed_lhs = type_static(*lhs, env)?;
+            let typed_rhs = type_static(*rhs, env)?;
+            let op = StaticBinop::from_early(operator.inner);
+            let return_type = match (typed_lhs.custom, typed_rhs.custom) {
+                (StaticType::Int, StaticType::Int) => match op {
+                    StaticBinop::Plus
+                    | StaticBinop::Mult
+                    | StaticBinop::Minus
+                    | StaticBinop::Div
+                    | StaticBinop::Exp
+                    | StaticBinop::Modulo
+                    | StaticBinop::Ge
+                    | StaticBinop::Gt
+                    | StaticBinop::Le
+                    | StaticBinop::Lt => StaticType::Int,
+                    StaticBinop::Eq | StaticBinop::NEq => StaticType::Bool,
+                    // TODO: handle wrong types
+                    _ => unreachable!(),
+                },
+                (StaticType::Bool, StaticType::Bool) => match op {
+                    StaticBinop::Or
+                    | StaticBinop::And
+                    | StaticBinop::XOr
+                    | StaticBinop::Eq
+                    | StaticBinop::NEq => StaticType::Bool,
+                    // TODO  Same
+                    _ => unreachable!(),
+                },
+                // TODO  Same
+                _ => unreachable!(),
+            };
+            Ok(StaticTypedLocated::__from_loc(
+                    StaticExpression::BinOp {
+                        lhs: Box::new(typed_lhs),
+                        rhs: Box::new(typed_rhs),
+                        operator: StaticLocated::__from_loc(
+                            op,
+                            (),
+                            operator.loc.clone(),
+                        ),
+                    },
+                    return_type,
+                    loc.clone(),
+                ))
+        }
         EarlyStaticExpression::IfThenElse {
             condition,
             if_block,

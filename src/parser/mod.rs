@@ -175,6 +175,46 @@ peg::parser! {
                     }, file, loc_x.union(loc_y))
                 }
 
+               x:(@) _ start:position!() "<" end:position!() _ y:@ {
+                    let loc_x = x.get_loc();
+                    let loc_y = y.get_loc();
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Lt, file, start..end),
+                        lhs: Box::new(x),
+                        rhs: Box::new(y),
+                    }, file, loc_x.union(loc_y))
+                }
+
+               x:(@) _ start:position!() ">" end:position!() _ y:@ {
+                    let loc_x = x.get_loc();
+                    let loc_y = y.get_loc();
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Gt, file, start..end),
+                        lhs: Box::new(x),
+                        rhs: Box::new(y),
+                    }, file, loc_x.union(loc_y))
+                }
+
+               x:(@) _ start:position!() "<=" end:position!() _ y:@ {
+                    let loc_x = x.get_loc();
+                    let loc_y = y.get_loc();
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Le, file, start..end),
+                        lhs: Box::new(x),
+                        rhs: Box::new(y),
+                    }, file, loc_x.union(loc_y))
+                }
+
+               x:(@) _ start:position!() ">=" end:position!() _ y:@ {
+                    let loc_x = x.get_loc();
+                    let loc_y = y.get_loc();
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Ge, file, start..end),
+                        lhs: Box::new(x),
+                        rhs: Box::new(y),
+                    }, file, loc_x.union(loc_y))
+                }
+
                 --
 
                x:(@) _ start:position!() "+" end:position!() _ y:@ {
