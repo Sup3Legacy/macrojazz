@@ -5,6 +5,7 @@ use crate::typing::*;
 use crate::Located;
 use std::collections::HashMap;
 use z3::*;
+use z3::ast::Ast;
 
 #[derive(Debug)]
 pub enum TypingError {
@@ -21,6 +22,43 @@ pub enum ExpType {
     // TODO: this is for multidimensional
     //Vector(Box<ExpType>, TT),
     Tuple(Vec<ExpType>),
+}
+
+impl ExpType {
+    pub fn to_z3<'a>(self, ctx: &'a z3::Context, z3_env: &HashMap<String, TTz3<'a>>) -> TTz3<'a> {
+        match self {
+            ExpType::Bit => TTz3::bit(ctx),
+            ExpType::SizeLessVector => TTz3::u64(ctx),
+            ExpType::Vector(tt) => tt.to_z3(ctx, z3_env),
+            ExpType::Tuple(_) => todo!(),
+        }
+    }
+}
+
+fn z3_compare_types<'a>(
+    t1: ExpType,
+    t2: ExpType,
+    ctx: &z3::Context,
+    solver: &mut z3::Solver,
+    z3_env: &HashMap<String, TTz3<'a>>,
+) -> bool {
+    let z3_1 = t1.to_z3(ctx, z3_env);
+    let z3_2 = t2.to_z3(ctx, z3_env);
+
+    let equality = match (z3_1, z3_2) {
+        (TTz3::Int(z1), TTz3::Int(z2)) => z1._eq(&z2),
+        _ => todo!()
+    };
+
+    let not_equality = equality.not();
+
+    solver.assert(&not_equality);
+
+    let result = solver.check();
+
+    println!("Got {:?}", result);
+
+    result == z3::SatResult::Unsat
 }
 
 pub type Identifier = String;
@@ -227,7 +265,11 @@ fn type_expression(
                         loc,
                     ))
                 }
-                _ => todo!(),
+                // Other binary operators
+                _ => {
+                    let lhs_z3 = typed_lhs.custom.to_z3();
+                    todo!()
+                }
             }
         }
         EarlyExpression::FuncCall {
