@@ -1,11 +1,11 @@
 use super::static_expr::*;
-use crate::parser::ast::*;
-use crate::typing::*;
-use crate::Located;
+
+
+
 use std::collections::HashMap;
 use z3::ast::Ast;
 use z3::ast::{Bool, Int};
-use z3::*;
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TTBinOp {
@@ -160,7 +160,7 @@ impl TT {
                         TTz3::Int(Int::mul(ctx, &[&i, &j]))
                     }
                     // i.power(j) returns a Real...
-                    (TTz3::Int(i), TTBinOp::Exp, TTz3::Int(j)) => todo!(),
+                    (TTz3::Int(_i), TTBinOp::Exp, TTz3::Int(_j)) => todo!(),
                     (TTz3::Int(i), TTBinOp::Div, TTz3::Int(j)) => TTz3::Int(i.div(&j)),
                     (TTz3::Int(i), TTBinOp::Modulo, TTz3::Int(j)) => TTz3::Int(i.modulo(&j)),
 
@@ -190,9 +190,9 @@ impl TT {
                 if_block,
                 else_block,
             } => {
-                let condition_z3 = condition.to_z3(ctx, z3_env);
-                let if_z3 = if_block.to_z3(ctx, z3_env);
-                let else_z3 = else_block.to_z3(ctx, z3_env);
+                let _condition_z3 = condition.to_z3(ctx, z3_env);
+                let _if_z3 = if_block.to_z3(ctx, z3_env);
+                let _else_z3 = else_block.to_z3(ctx, z3_env);
 
                 // TODO: ife in static expressions not supported for now
                 todo!()

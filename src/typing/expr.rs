@@ -5,7 +5,7 @@ use crate::typing::*;
 use crate::Located;
 use std::collections::HashMap;
 use z3::ast::Ast;
-use z3::*;
+
 
 #[derive(Clone, Debug)]
 pub enum TypingError {
@@ -298,12 +298,12 @@ fn type_expression<'a>(
             }
         }
         EarlyExpression::FuncCall {
-            func_name,
-            static_params,
-            runtime_params,
-            builtin,
+            func_name: _,
+            static_params: _,
+            runtime_params: _,
+            builtin: _,
         } => todo!(),
-        EarlyExpression::Index { lhs, index } => todo!(),
+        EarlyExpression::Index { lhs: _, index: _ } => todo!(),
         EarlyExpression::Tuple(_) => todo!(),
         EarlyExpression::IfThenElse {
             condition,
@@ -361,6 +361,6 @@ fn type_expression<'a>(
                 ))
             }
         }
-        EarlyExpression::Let { lhs, rhs, scope } => todo!(),
+        EarlyExpression::Let { lhs: _, rhs: _, scope: _ } => todo!(),
     }
 }
