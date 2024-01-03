@@ -11,7 +11,7 @@ pub enum TypingError {
     IdentNotFound,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ExpType {
     Bit,
     // INFO: used to cast an integer to any type of 1d vector
@@ -25,9 +25,9 @@ pub enum ExpType {
 
 pub type Identifier = String;
 type ExpLocated<T> = Located<(), T>;
-type ExpTypedLocated<'a, T> = Located<&'a ExpType, T>;
+type ExpTypedLocated<T> = Located<ExpType, T>;
 
-pub type Params<'a> = Vec<ExpLocated<Expression<'a>>>;
+pub type Params = Vec<ExpLocated<Expression>>;
 
 pub type StaticParams = Vec<StaticTypedLocated<StaticExpression>>;
 
@@ -94,52 +94,52 @@ pub enum Lhs {
 }
 
 #[derive(Debug)]
-pub enum Expression<'a> {
+pub enum Expression {
     Ident(Identifier),
     Literal(Literal),
     MonOp {
-        operand: Box<ExpTypedLocated<'a, Expression<'a>>>,
+        operand: Box<ExpTypedLocated<Expression>>,
         operator: ExpLocated<MonOp>,
     },
     BinOp {
-        lhs: Box<ExpTypedLocated<'a, Expression<'a>>>,
-        rhs: Box<ExpTypedLocated<'a, Expression<'a>>>,
+        lhs: Box<ExpTypedLocated<Expression>>,
+        rhs: Box<ExpTypedLocated<Expression>>,
         operator: ExpLocated<BinOp>,
     },
     FuncCall {
         func_name: ExpLocated<Identifier>,
         static_params: Option<StaticParams>,
-        runtime_params: Params<'a>,
+        runtime_params: Params,
         builtin: ExpLocated<bool>,
     },
     Index {
-        lhs: Box<ExpTypedLocated<'a, Expression<'a>>>,
+        lhs: Box<ExpTypedLocated<Expression>>,
         index: Box<ExpLocated<Index>>,
     },
-    Tuple(Vec<ExpTypedLocated<'a, Expression<'a>>>),
+    Tuple(Vec<ExpTypedLocated<Expression>>),
     IfThenElse {
         condition: Box<StaticTypedLocated<StaticExpression>>,
-        if_block: Box<ExpTypedLocated<'a, Expression<'a>>>,
-        else_block: Box<ExpTypedLocated<'a, Expression<'a>>>,
+        if_block: Box<ExpTypedLocated<Expression>>,
+        else_block: Box<ExpTypedLocated<Expression>>,
     },
     Let {
         lhs: ExpLocated<Lhs>,
-        rhs: Box<ExpTypedLocated<'a, Expression<'a>>>,
-        scope: Box<ExpTypedLocated<'a, Expression<'a>>>,
+        rhs: Box<ExpTypedLocated<Expression>>,
+        scope: Box<ExpTypedLocated<Expression>>,
     },
 }
 
 // TODO: fucntion to build z3 tree from StaticExpression
 
-fn type_expression<'a>(
+fn type_expression(
     exp: EarlyLocated<EarlyExpression>,
     z3ctx: &mut z3::Context,
-    exp_ctx: &'a HashMap<String, ExpType>,
+    exp_ctx: &HashMap<String, ExpType>,
     static_ctx: &mut HashMap<String, StaticType>,
     // TODO: add function signature context
     // TODO: also need assumptions on meta-variables?
     // OR put them in the z3 context before calling this function, maybe
-) -> Result<ExpTypedLocated<'a, Expression<'a>>, ExpLocated<TypingError>> {
+) -> Result<ExpTypedLocated<Expression>, ExpLocated<TypingError>> {
     let loc = exp.loc.clone();
     match exp.inner {
         EarlyExpression::Ident(id) => exp_ctx
@@ -149,15 +149,15 @@ fn type_expression<'a>(
                 (),
                 loc.clone(),
             ))
-            .map(|v| ExpTypedLocated::__from_loc(Expression::Ident(id), v, loc)),
+            .map(|v| ExpTypedLocated::__from_loc(Expression::Ident(id), (*v).clone(), loc)),
         EarlyExpression::Literal(i) => Ok(ExpTypedLocated::__from_loc(
             Expression::Literal(Literal::from_early(i)),
-            &ExpType::SizeLessVector,
+            ExpType::SizeLessVector,
             loc,
         )),
         EarlyExpression::MonOp { operand, operator } => {
             let typed_operand = type_expression(*operand, z3ctx, exp_ctx, static_ctx)?;
-            let res_type = typed_operand.custom;
+            let res_type = typed_operand.custom.clone();
             Ok(ExpTypedLocated::__from_loc(
                 Expression::MonOp {
                     operand: Box::new(typed_operand),
@@ -178,7 +178,7 @@ fn type_expression<'a>(
             match operator.inner {
                 // INFO: Concat is a special case
                 EarlyBinOp::Concat => {
-                    let res_type = match (typed_lhs.custom, typed_rhs.custom) {
+                    let res_type = match (typed_lhs.custom.clone(), typed_rhs.custom.clone()) {
                         // Must not concatenate tuples
                         (_, ExpType::Tuple(_)) | (ExpType::Tuple(_), _) => todo!(),
 
@@ -213,19 +213,19 @@ fn type_expression<'a>(
                         (_, _) => todo!(),
                     };
 
-            Ok(ExpTypedLocated::__from_loc(
-                Expression::BinOp {
-                    lhs: Box::new(typed_lhs),
-                    rhs: Box::new(typed_rhs),
-                    operator: ExpLocated::__from_loc(
-                        BinOp::from_early(operator.inner),
-                        (),
-                        operator.loc,
-                    ),
-                },
-                &res_type,
-                loc,
-            ))
+                    Ok(ExpTypedLocated::__from_loc(
+                        Expression::BinOp {
+                            lhs: Box::new(typed_lhs),
+                            rhs: Box::new(typed_rhs),
+                            operator: ExpLocated::__from_loc(
+                                BinOp::from_early(operator.inner),
+                                (),
+                                operator.loc,
+                            ),
+                        },
+                        res_type,
+                        loc,
+                    ))
                 }
                 _ => todo!(),
             }
