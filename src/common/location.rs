@@ -8,9 +8,9 @@ pub struct Location {
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct Located<U, T> {
-    inner: T,
-    custom: U,
-    loc: Location,
+    pub inner: T,
+    pub custom: U,
+    pub loc: Location,
 }
 
 impl Location {
@@ -65,6 +65,10 @@ impl<U, T> Located<U, T> {
             custom,
             loc: Location::new(file, start, end),
         }
+    }
+
+    pub fn __from_loc(inner: T, custom: U, loc: Location) -> Self {
+        Self { inner, custom, loc }
     }
 
     pub fn __from_range(

@@ -8,7 +8,6 @@ pub mod typing;
 
 use clap::Parser;
 use common::*;
-use typing;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
