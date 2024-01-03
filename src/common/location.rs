@@ -6,8 +6,8 @@ pub struct Location {
     range: std::ops::Range<usize>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq)]
-pub struct Located<U, T> {
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
+pub struct Located<U: Clone, T: Clone> {
     pub inner: T,
     pub custom: U,
     pub loc: Location,
@@ -58,7 +58,7 @@ impl std::fmt::Debug for Location {
     }
 }
 
-impl<U, T> Located<U, T> {
+impl<U: Clone, T: Clone> Located<U, T> {
     pub fn __new(inner: T, custom: U, file: SourceId, start: usize, end: usize) -> Self {
         Self {
             inner,
@@ -101,7 +101,7 @@ impl<U, T> Located<U, T> {
     }
 
     // TODO: Also map the custom field
-    pub fn map<V, F>(self, f: F) -> Located<U, V>
+    pub fn map<V: Clone, F>(self, f: F) -> Located<U, V>
     where
         F: FnOnce(T) -> V,
     {

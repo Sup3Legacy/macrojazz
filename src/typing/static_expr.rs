@@ -16,13 +16,13 @@ pub type StaticIdentifier = String;
 pub type StaticLocated<T> = Located<(), T>;
 pub type StaticTypedLocated<T> = Located<StaticType, T>;
 
-impl<T> StaticLocated<T> {
+impl<T: Clone> StaticLocated<T> {
     pub fn from_early(early: EarlyLocated<EarlyStaticExpression>, exp: T) -> Self {
         Self::__from_loc(exp, (), early.loc)
     }
 }
 
-impl<T> StaticTypedLocated<T> {
+impl<T: Clone> StaticTypedLocated<T> {
     pub fn from_early(early: EarlyLocated<EarlyStaticExpression>, exp: T, typ: StaticType) -> Self {
         Self::__from_loc(exp, typ, early.loc)
     }
@@ -47,7 +47,7 @@ pub enum StaticBinop {
     XOr,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum StaticExpression {
     Ident(StaticIdentifier),
     IntLiteral(u64),
@@ -71,7 +71,7 @@ pub enum StaticExpression {
 // The error should be an ariadne report (or maybe multiple ones)
 pub fn type_static(
     exp: EarlyLocated<EarlyStaticExpression>,
-    env: HashMap<String, StaticType>,
+    env: &mut HashMap<String, StaticType>,
 ) -> Result<StaticTypedLocated<StaticExpression>, StaticLocated<StaticTypingError>> {
     let loc = exp.loc;
     match exp.inner {
@@ -135,7 +135,7 @@ pub fn type_static(
             if_block,
             else_block,
         } => {
-            let condition_exp = type_static(*condition, env.clone())?;
+            let condition_exp = type_static(*condition, env)?;
             if condition_exp.custom != StaticType::Bool {
                 return Err(StaticLocated::__from_loc(
                     StaticTypingError::ConditionNotBool,
@@ -143,8 +143,8 @@ pub fn type_static(
                     condition_exp.loc.clone(),
                 ));
             }
-            let if_exp = type_static(*if_block, env.clone())?;
-            let else_exp = type_static(*else_block, env.clone())?;
+            let if_exp = type_static(*if_block, env)?;
+            let else_exp = type_static(*else_block, env)?;
             if if_exp.custom == else_exp.custom {
                 let return_type = if_exp.custom.clone();
                 Ok(StaticTypedLocated::__from_loc(

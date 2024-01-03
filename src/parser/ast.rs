@@ -2,7 +2,7 @@ use crate::common::{location::Located, source::SourceId};
 
 pub type EarlyLocated<T> = Located<(), T>;
 
-impl<T> EarlyLocated<T> {
+impl<T: Clone> EarlyLocated<T> {
     pub fn new(inner: T, file: SourceId, start: usize, end: usize) -> Self {
         Self::__new(inner, (), file, start, end)
     }
@@ -32,7 +32,7 @@ pub struct EarlyStaticTypeDef {
 }
 
 /// A 2-adic operator
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyBinOp {
     Concat,
     BitOr,
@@ -40,7 +40,7 @@ pub enum EarlyBinOp {
     BitXOr,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyStaticBinOp {
     Plus,
     Minus,
@@ -54,36 +54,36 @@ pub enum EarlyStaticBinOp {
     NEquals,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyOperator {
     Reg,
 }
 
 /// A 1-adic operator
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyMonOp {
     BitNot,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyStaticMonOp {
     Minus,
     Not,
 }
 
 /// A immediate
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyLiteral {
     Int(u64),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyStaticLiteral {
     Int(u64),
     Bool(bool),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyIndex {
     Range {
         lhs: Option<EarlyLocated<EarlyStaticExpression>>,
@@ -93,7 +93,7 @@ pub enum EarlyIndex {
     Simple(EarlyStaticExpression),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyExpression {
     Ident(EarlyIdentifier),
     Literal(EarlyLiteral),
@@ -129,7 +129,7 @@ pub enum EarlyExpression {
     },
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyStaticExpression {
     Ident(EarlyIdentifier),
     Literal(EarlyStaticLiteral),
@@ -149,29 +149,29 @@ pub enum EarlyStaticExpression {
     },
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyLhs {
     Ident(EarlyIdentifier),
     Tuple(Vec<EarlyLocated<EarlyIdentifier>>),
     // TODO Add slice as a LHS?
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct EarlyArg {
     pub name: EarlyLocated<EarlyIdentifier>,
     pub typ: Option<EarlyLocated<EarlyType>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct EarlyNodeInputType(pub Vec<EarlyLocated<EarlyArg>>);
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyWireSize {
     Expression(EarlyStaticExpression),
     Inferred,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyType {
     // A tuple type
     Tuple(Vec<EarlyLocated<EarlyType>>),
@@ -182,25 +182,25 @@ pub enum EarlyType {
     // Infered,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum EarlyStaticBaseType {
     Int,
     Bool,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct EarlyStaticType {
     pub base: Option<EarlyLocated<EarlyStaticBaseType>>,
     pub refinement: Option<EarlyLocated<EarlyStaticExpression>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct EarlyStaticArg {
     pub name: EarlyLocated<EarlyIdentifier>,
     pub typ: Option<EarlyLocated<EarlyStaticType>>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct EarlyNode {
     pub name: EarlyLocated<EarlyIdentifier>,
     pub static_args: Option<EarlyLocated<Vec<EarlyLocated<EarlyStaticArg>>>>,

@@ -4,12 +4,15 @@ use crate::parser::ast::*;
 use crate::typing::*;
 use crate::Located;
 use std::collections::HashMap;
-use z3::*;
 use z3::ast::Ast;
+use z3::*;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum TypingError {
     IdentNotFound,
+    BinOpWrongSize,
+    ConditionDoesntType,
+    ConditionNotBool,
 }
 
 #[derive(Debug, Clone)]
@@ -47,7 +50,7 @@ fn z3_compare_types<'a>(
 
     let equality = match (z3_1, z3_2) {
         (TTz3::Int(z1), TTz3::Int(z2)) => z1._eq(&z2),
-        _ => todo!()
+        _ => todo!(),
     };
 
     let not_equality = equality.not();
@@ -57,6 +60,8 @@ fn z3_compare_types<'a>(
     let result = solver.check();
 
     println!("Got {:?}", result);
+
+    // TODO: is SAT, show a counter-example model!
 
     result == z3::SatResult::Unsat
 }
@@ -69,7 +74,7 @@ pub type Params = Vec<ExpLocated<Expression>>;
 
 pub type StaticParams = Vec<StaticTypedLocated<StaticExpression>>;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Index {
     Range {
         lhs: Option<StaticLocated<StaticExpression>>,
@@ -79,7 +84,7 @@ pub enum Index {
     Simple(StaticExpression),
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Literal {
     Int(u64),
 }
@@ -92,7 +97,7 @@ impl Literal {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum MonOp {
     BitNot,
 }
@@ -105,7 +110,7 @@ impl MonOp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum BinOp {
     Concat,
     BitOr,
@@ -124,14 +129,14 @@ impl BinOp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Lhs {
     Ident(Identifier),
     Tuple(Vec<ExpLocated<Identifier>>),
     // TODO Add slice as a LHS?
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum Expression {
     Ident(Identifier),
     Literal(Literal),
@@ -169,9 +174,11 @@ pub enum Expression {
 
 // TODO: fucntion to build z3 tree from StaticExpression
 
-fn type_expression(
+fn type_expression<'a>(
     exp: EarlyLocated<EarlyExpression>,
-    z3ctx: &mut z3::Context,
+    z3_ctx: &z3::Context,
+    z3_env: &HashMap<String, TTz3<'a>>,
+    solver: &mut z3::Solver,
     exp_ctx: &HashMap<String, ExpType>,
     static_ctx: &mut HashMap<String, StaticType>,
     // TODO: add function signature context
@@ -194,7 +201,8 @@ fn type_expression(
             loc,
         )),
         EarlyExpression::MonOp { operand, operator } => {
-            let typed_operand = type_expression(*operand, z3ctx, exp_ctx, static_ctx)?;
+            let typed_operand =
+                type_expression(*operand, z3_ctx, z3_env, solver, exp_ctx, static_ctx)?;
             let res_type = typed_operand.custom.clone();
             Ok(ExpTypedLocated::__from_loc(
                 Expression::MonOp {
@@ -210,8 +218,8 @@ fn type_expression(
             ))
         }
         EarlyExpression::BinOp { lhs, rhs, operator } => {
-            let typed_lhs = type_expression(*lhs, z3ctx, exp_ctx, static_ctx)?;
-            let typed_rhs = type_expression(*rhs, z3ctx, exp_ctx, static_ctx)?;
+            let typed_lhs = type_expression(*lhs, z3_ctx, z3_env, solver, exp_ctx, static_ctx)?;
+            let typed_rhs = type_expression(*rhs, z3_ctx, z3_env, solver, exp_ctx, static_ctx)?;
 
             match operator.inner {
                 // INFO: Concat is a special case
@@ -267,8 +275,25 @@ fn type_expression(
                 }
                 // Other binary operators
                 _ => {
-                    let lhs_z3 = typed_lhs.custom.to_z3();
-                    todo!()
+                    let (t1, t2) = (typed_lhs.custom.clone(), typed_rhs.custom.clone());
+                    let does_type = z3_compare_types(t1.clone(), t2, z3_ctx, solver, z3_env);
+                    if does_type {
+                        Ok(ExpTypedLocated::__from_loc(
+                            Expression::BinOp {
+                                lhs: Box::new(typed_lhs),
+                                rhs: Box::new(typed_rhs),
+                                operator: ExpLocated::__from_loc(
+                                    BinOp::from_early(operator.inner),
+                                    (),
+                                    operator.loc,
+                                ),
+                            },
+                            t1,
+                            loc,
+                        ))
+                    } else {
+                        Err(ExpLocated::__from_loc(TypingError::BinOpWrongSize, (), loc))
+                    }
                 }
             }
         }
@@ -284,15 +309,58 @@ fn type_expression(
             condition,
             if_block,
             else_block,
-        } =>
-        // TODO: z3 push
-        // TODO: z3 pop
-        {
-            todo!()
+        } => {
+            let loc_ = condition.loc.clone();
+            let loc__ = condition.loc.clone();
+            let typed_condition = type_static(*condition, static_ctx)
+                .map_err(|_| ExpLocated::__from_loc(TypingError::ConditionDoesntType, (), loc_))?;
+
+            if typed_condition.custom != StaticType::Bool {
+                Err(ExpLocated::__from_loc(
+                    TypingError::ConditionNotBool,
+                    (),
+                    loc__,
+                ))
+            } else {
+                // push and pop assertions to the z3 solver to further refine the model
+                let z3_condition_raw = typed_condition.clone(); 
+                let z3_condition = match typed_condition.to_tt().to_z3(z3_ctx, z3_env) {
+                    TTz3::Bool(b) => b,
+                    _ => todo!(),
+                };
+
+                solver.push();
+                // WARN
+                solver.assert(&z3_condition);
+                println!("Entering if branch");
+
+                let typed_if =
+                    type_expression(*if_block, z3_ctx, z3_env, solver, exp_ctx, static_ctx)?;
+
+                solver.pop(1);
+                solver.push();
+
+                solver.assert(&z3_condition.not());
+                println!("Entering else branch");
+
+                let typed_else =
+                    type_expression(*else_block, z3_ctx, z3_env, solver, exp_ctx, static_ctx)?;
+                solver.pop(1);
+
+                // TODO: check that the return type is the same ?
+
+                let res_type = typed_if.custom.clone();
+                Ok(ExpTypedLocated::__from_loc(
+                    Expression::IfThenElse {
+                        condition: Box::new(z3_condition_raw),
+                        if_block: Box::new(typed_if),
+                        else_block: Box::new(typed_else),
+                    },
+                    res_type,
+                    loc,
+                ))
+            }
         }
-        // TODO: z3 push
-        // TODO: z3 pop
-        ,
         EarlyExpression::Let { lhs, rhs, scope } => todo!(),
     }
 }
