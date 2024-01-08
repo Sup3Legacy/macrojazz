@@ -115,6 +115,7 @@ impl StaticTypedLocated<StaticExpression> {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum TTz3<'a> {
     Int(Int<'a>),
     Bool(Bool<'a>),

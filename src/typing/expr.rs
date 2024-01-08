@@ -6,7 +6,6 @@ use crate::Located;
 use std::collections::HashMap;
 use z3::ast::Ast;
 
-
 #[derive(Clone, Debug)]
 pub enum TypingError {
     IdentNotFound,
@@ -25,6 +24,11 @@ pub enum ExpType {
     // TODO: this is for multidimensional
     //Vector(Box<ExpType>, TT),
     Tuple(Vec<ExpType>),
+    IfT {
+        condition: TT,
+        if_branch: Box<ExpType>,
+        else_branch: Box<ExpType>,
+    },
 }
 
 impl ExpType {
@@ -33,6 +37,23 @@ impl ExpType {
             ExpType::Bit => TTz3::bit(ctx),
             ExpType::SizeLessVector => TTz3::u64(ctx),
             ExpType::Vector(tt) => tt.to_z3(ctx, z3_env),
+            ExpType::IfT {
+                condition,
+                if_branch,
+                else_branch,
+            } => {
+                let condition_z3 = condition.to_z3(ctx, z3_env);
+                let if_branch_z3 = (*if_branch).to_z3(ctx, z3_env);
+                let else_branch_z3 = (*else_branch).to_z3(ctx, z3_env);
+
+                match (condition_z3, if_branch_z3, else_branch_z3) {
+                    (TTz3::Bool(bool_term), TTz3::Int(if_term), TTz3::Int(else_term)) => {
+                        TTz3::Int(bool_term.ite::<z3::ast::Int>(&if_term, &else_term))
+                    }
+                    (TTz3::Int(_), _, _) => unreachable!(),
+                    (_, _, _) => unreachable!(),
+                }
+            }
             ExpType::Tuple(_) => todo!(),
         }
     }
@@ -323,7 +344,8 @@ fn type_expression<'a>(
                 ))
             } else {
                 // push and pop assertions to the z3 solver to further refine the model
-                let z3_condition_raw = typed_condition.clone(); 
+                let z3_condition_raw = typed_condition.clone();
+                let condition_tt = typed_condition.clone().to_tt();
                 let z3_condition = match typed_condition.to_tt().to_z3(z3_ctx, z3_env) {
                     TTz3::Bool(b) => b,
                     _ => todo!(),
@@ -336,6 +358,7 @@ fn type_expression<'a>(
 
                 let typed_if =
                     type_expression(*if_block, z3_ctx, z3_env, solver, exp_ctx, static_ctx)?;
+                let if_type = typed_if.clone().custom;
 
                 solver.pop(1);
                 solver.push();
@@ -345,22 +368,28 @@ fn type_expression<'a>(
 
                 let typed_else =
                     type_expression(*else_block, z3_ctx, z3_env, solver, exp_ctx, static_ctx)?;
+                let else_type = typed_else.clone().custom;
                 solver.pop(1);
 
-                // TODO: check that the return type is the same ?
-
-                let res_type = typed_if.custom.clone();
                 Ok(ExpTypedLocated::__from_loc(
                     Expression::IfThenElse {
                         condition: Box::new(z3_condition_raw),
                         if_block: Box::new(typed_if),
                         else_block: Box::new(typed_else),
                     },
-                    res_type,
+                    ExpType::IfT {
+                        condition: condition_tt,
+                        if_branch: Box::new(if_type),
+                        else_branch: Box::new(else_type),
+                    },
                     loc,
                 ))
             }
         }
-        EarlyExpression::Let { lhs: _, rhs: _, scope: _ } => todo!(),
+        EarlyExpression::Let {
+            lhs: _,
+            rhs: _,
+            scope: _,
+        } => todo!(),
     }
 }
