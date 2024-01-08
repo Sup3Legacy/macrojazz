@@ -179,12 +179,13 @@ pub fn type_static(
                     | StaticBinop::Minus
                     | StaticBinop::Div
                     | StaticBinop::Exp
-                    | StaticBinop::Modulo
-                    | StaticBinop::Ge
+                    | StaticBinop::Modulo => StaticType::Int,
+                    StaticBinop::Ge
                     | StaticBinop::Gt
                     | StaticBinop::Le
-                    | StaticBinop::Lt => StaticType::Int,
-                    StaticBinop::Eq | StaticBinop::NEq => StaticType::Bool,
+                    | StaticBinop::Lt
+                    | StaticBinop::Eq
+                    | StaticBinop::NEq => StaticType::Bool,
                     // TODO: handle wrong types
                     _ => unreachable!(),
                 },

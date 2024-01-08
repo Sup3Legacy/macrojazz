@@ -155,6 +155,32 @@ peg::parser! {
 
                 --
 
+               x:(@) _ start:position!() "/\\" end:position!() _ y:@ {
+                    let loc_x = x.get_loc();
+                    let loc_y = y.get_loc();
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::And, file, start..end),
+                        lhs: Box::new(x),
+                        rhs: Box::new(y),
+                    }, file, loc_x.union(loc_y))
+                }
+
+                --
+
+               x:(@) _ start:position!() "\\/" end:position!() _ y:@ {
+                    let loc_x = x.get_loc();
+                    let loc_y = y.get_loc();
+                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
+                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Or, file, start..end),
+                        lhs: Box::new(x),
+                        rhs: Box::new(y),
+                    }, file, loc_x.union(loc_y))
+                }
+
+
+
+                --
+
                x:(@) _ start:position!() "==" end:position!() _ y:@ {
                     let loc_x = x.get_loc();
                     let loc_y = y.get_loc();
@@ -281,31 +307,6 @@ peg::parser! {
                 }
 
                 --
-
-               x:(@) _ start:position!() "\\/" end:position!() _ y:@ {
-                    let loc_x = x.get_loc();
-                    let loc_y = y.get_loc();
-                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
-                        operator: EarlyLocated::from_range(EarlyStaticBinOp::Or, file, start..end),
-                        lhs: Box::new(x),
-                        rhs: Box::new(y),
-                    }, file, loc_x.union(loc_y))
-                }
-
-
-                --
-
-               x:(@) _ start:position!() "/\\" end:position!() _ y:@ {
-                    let loc_x = x.get_loc();
-                    let loc_y = y.get_loc();
-                    EarlyLocated::from_range(EarlyStaticExpression::BinOp {
-                        operator: EarlyLocated::from_range(EarlyStaticBinOp::And, file, start..end),
-                        lhs: Box::new(x),
-                        rhs: Box::new(y),
-                    }, file, loc_x.union(loc_y))
-                }
-
-                 --
 
                 l:static_literal(file)
                     {
