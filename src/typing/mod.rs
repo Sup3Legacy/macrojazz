@@ -1,7 +1,7 @@
 mod smt;
 mod warnings;
 mod static_expr;
-mod expr;
+pub mod expr;
 mod type_tree;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]

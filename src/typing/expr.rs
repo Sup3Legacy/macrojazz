@@ -393,3 +393,17 @@ fn type_expression<'a>(
         } => todo!(),
     }
 }
+
+// TODO: should take as argument an environment with all node names and signatures
+pub fn type_check_node(node: EarlyLocated<EarlyNode>) {
+    let z3_cfg = z3::Config::new();
+    let z3_ctx = z3::Context::new(&z3_cfg);
+    let mut z3_solver = z3::Solver::new(&z3_ctx);
+
+    let mut z3_env = HashMap::new();
+    let mut exp_ctx = HashMap::new();
+    let mut static_ctx = HashMap::new();
+
+    let _ = type_expression(node.inner.block, &z3_ctx, &z3_env, &mut z3_solver, &exp_ctx, &mut static_ctx);
+
+}

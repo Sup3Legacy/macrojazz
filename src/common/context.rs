@@ -1,7 +1,7 @@
 use super::*;
-use crate::{parser::ast::EarlyProgram, single_label};
+use crate::{parser::ast::EarlyProgram, single_label, typing};
 use anyhow::Result;
-use ariadne::{Color, Config, Label, Report, ReportKind, Source, Fmt};
+use ariadne::{Color, Config, Fmt, Label, Report, ReportKind, Source};
 use peg;
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -24,10 +24,22 @@ impl From<CompileError> for usize {
     }
 }
 
+#[derive(Default)]
 pub enum Program {
+    #[default]
     Null,
     Parsed(EarlyProgram),
     Error(CompileError),
+}
+
+impl Program {
+    pub fn take_parsed(&mut self) -> EarlyProgram {
+        let value = std::mem::take(self);
+        match value {
+            Program::Parsed(p) => p,
+            _ => unreachable!()
+        }
+    }
 }
 
 pub struct CompileContext {
@@ -81,10 +93,20 @@ impl CompileContext {
         }
 
         if success {
+            self.program = Program::Parsed(program);
             Ok(reports)
         } else {
             Err(reports)
         }
+    }
+
+    pub fn typecheck(&mut self) -> Result<(), ()> {
+        let parsed = self.program.take_parsed();
+        // TODO: build environment of nodes for instantiation typechecking
+        for node in parsed {
+            typing::expr::type_check_node(node);
+        }
+        Ok(())
     }
 
     pub fn run(&mut self) {
