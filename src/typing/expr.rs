@@ -63,7 +63,7 @@ fn z3_compare_types<'a>(
     t1: ExpType,
     t2: ExpType,
     ctx: &z3::Context,
-    solver: &mut z3::Solver,
+    solver: &z3::Solver,
     z3_env: &HashMap<String, TTz3<'a>>,
 ) -> bool {
     let z3_1 = t1.to_z3(ctx, z3_env);
@@ -498,12 +498,23 @@ pub fn type_check_node(
         exp_ctx.insert(dparam.name.inner.clone(), dparam_type);
     }
 
-    type_expression(
+    let block_typexp = type_expression(
         node.block,
         &z3_ctx,
         &z3_env,
         &mut z3_solver,
         &exp_ctx,
         &static_ctx,
-    )
+    )?;
+
+    let block_type = block_typexp.custom.clone();
+    let node_return_type = node.runtime_outs.to_exptype(&static_ctx);
+
+    let compare = z3_compare_types(block_type, node_return_type, &z3_ctx, &z3_solver, &z3_env);
+
+    if !compare {
+        println!("Bad return type");
+    }
+
+    Ok(block_typexp)
 }
