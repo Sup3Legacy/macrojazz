@@ -28,6 +28,15 @@ impl<T: Clone> StaticTypedLocated<T> {
     }
 }
 
+impl StaticType {
+    pub fn from_early(et: EarlyLocated<EarlyStaticBaseType>) -> Self {
+        match et.inner {
+            EarlyStaticBaseType::Int => StaticType::Int,
+            EarlyStaticBaseType::Bool => StaticType::Bool,
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub enum StaticMonop {
     Not,
@@ -101,7 +110,7 @@ pub enum StaticExpression {
 // The error should be an ariadne report (or maybe multiple ones)
 pub fn type_static(
     exp: EarlyLocated<EarlyStaticExpression>,
-    env: &mut HashMap<String, StaticType>,
+    env: &HashMap<String, StaticType>,
 ) -> Result<StaticTypedLocated<StaticExpression>, StaticLocated<StaticTypingError>> {
     let loc = exp.loc;
     match exp.inner {
@@ -192,18 +201,14 @@ pub fn type_static(
                 _ => unreachable!(),
             };
             Ok(StaticTypedLocated::__from_loc(
-                    StaticExpression::BinOp {
-                        lhs: Box::new(typed_lhs),
-                        rhs: Box::new(typed_rhs),
-                        operator: StaticLocated::__from_loc(
-                            op,
-                            (),
-                            operator.loc.clone(),
-                        ),
-                    },
-                    return_type,
-                    loc.clone(),
-                ))
+                StaticExpression::BinOp {
+                    lhs: Box::new(typed_lhs),
+                    rhs: Box::new(typed_rhs),
+                    operator: StaticLocated::__from_loc(op, (), operator.loc.clone()),
+                },
+                return_type,
+                loc.clone(),
+            ))
         }
         EarlyStaticExpression::IfThenElse {
             condition,

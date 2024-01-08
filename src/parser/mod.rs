@@ -479,32 +479,20 @@ peg::parser! {
 
             }
 
-        rule wire_inferred(file: SourceId) -> EarlyLocated<EarlyWireSize> =
-            start:position!() "_" end:position!()
-            {
-                EarlyLocated::new(
-                    EarlyWireSize::Inferred,
-                    file,
-                    start,
-                    end
-                )
-            }
-
-        rule wire_expression(file: SourceId) -> EarlyLocated<EarlyWireSize> =
+        rule wire_expression(file: SourceId) -> EarlyLocated<EarlyStaticExpression> =
             s:static_expression(file)
             {
-               s.map(EarlyWireSize::Expression)
+               s
             }
 
-        rule wire_size(file: SourceId) -> EarlyLocated<EarlyWireSize> =
-            wire_inferred(file)
-            / wire_expression(file)
+        rule wire_size(file: SourceId) -> EarlyLocated<EarlyStaticExpression> =
+            wire_expression(file)
 
         rule wire_type(file: SourceId) -> EarlyLocated<EarlyType> = precedence! {
             _ start:position!() "[" _ s:wire_size(file) _ "]" end:position!() _
             {
                 EarlyLocated::new(
-                    EarlyType::Base(s.get_inner()),
+                    EarlyType::Base(s),
                     file,
                     start,
                     end
@@ -551,7 +539,7 @@ peg::parser! {
         rule runtime_arg_vec(file: SourceId) -> EarlyLocated<EarlyNodeInputType>
             = start:position!() "(" args:runtime_arg(file) ** "," ")" end:position!()
             {
-                EarlyLocated::new(EarlyNodeInputType(args), file, start, end)
+                EarlyLocated::new(args, file, start, end)
             }
 
         rule static_type_bool(file:SourceId) -> EarlyLocated<EarlyStaticBaseType>

@@ -3,7 +3,7 @@ use super::source::*;
 #[derive(Clone, Hash, PartialEq, Eq)]
 pub struct Location {
     file: SourceId,
-    range: std::ops::Range<usize>,
+    pub range: std::ops::Range<usize>,
 }
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]

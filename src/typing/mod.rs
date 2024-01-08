@@ -1,8 +1,9 @@
+use crate::parser::*;
 mod smt;
 mod warnings;
-mod static_expr;
+pub mod static_expr;
 pub mod expr;
-mod type_tree;
+pub mod type_tree;
 
 #[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub enum StaticErrorType {
@@ -16,3 +17,4 @@ pub enum StaticType {
     Int,
     Bool
 }
+

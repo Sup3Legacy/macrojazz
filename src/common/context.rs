@@ -1,5 +1,5 @@
 use super::*;
-use crate::{parser::ast::EarlyProgram, single_label, typing};
+use crate::{parser::ast::EarlyProgram, single_label, typing::expr::*, typing};
 use anyhow::Result;
 use ariadne::{Color, Config, Fmt, Label, Report, ReportKind, Source};
 use peg;
@@ -37,7 +37,7 @@ impl Program {
         let value = std::mem::take(self);
         match value {
             Program::Parsed(p) => p,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 }
@@ -94,22 +94,35 @@ impl CompileContext {
 
         if success {
             self.program = Program::Parsed(program);
+            println!("Successful parsing!");
             Ok(reports)
         } else {
             Err(reports)
         }
     }
 
-    pub fn typecheck(&mut self) -> Result<(), ()> {
+    pub fn typecheck(&mut self) -> Result<(), ExpLocated<TypingError>> {
         let parsed = self.program.take_parsed();
         // TODO: build environment of nodes for instantiation typechecking
+        println!("number of nodes: {}", parsed.len());
         for node in parsed {
-            typing::expr::type_check_node(node);
+            typing::expr::type_check_node(node)?;
         }
         Ok(())
     }
 
     pub fn run(&mut self) {
-        self.parse();
+        // TODO: unify all errors and better use the Result
+        match self.parse() {
+            Ok(_) => {
+                match self.typecheck() {
+                    Ok(_) => println!("Successful typechecking!"),
+                    Err(e) => println!("Typechecking error: {:?}, locs: {:?}", e.inner, e.loc.range),
+                };
+
+                ()
+            }
+            _ => (),
+        }
     }
 }

@@ -164,21 +164,14 @@ pub struct EarlyArg {
     pub typ: Option<EarlyLocated<EarlyType>>,
 }
 
-#[derive(Clone, Debug)]
-pub struct EarlyNodeInputType(pub Vec<EarlyLocated<EarlyArg>>);
-
-#[derive(Clone, Debug)]
-pub enum EarlyWireSize {
-    Expression(EarlyStaticExpression),
-    Inferred,
-}
+pub type EarlyNodeInputType = Vec<EarlyLocated<EarlyArg>>;
 
 #[derive(Clone, Debug)]
 pub enum EarlyType {
     // A tuple type
     Tuple(Vec<EarlyLocated<EarlyType>>),
     // The expression is the wire size. TODO generalize to multiple dimensions
-    Base(EarlyWireSize),
+    Base(EarlyLocated<EarlyStaticExpression>),
     Unit,
     // `_` type
     // Infered,

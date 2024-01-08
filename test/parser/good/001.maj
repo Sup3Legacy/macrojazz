@@ -1,6 +1,5 @@
 /// A node
-node dd<n : {int : n != 0}, a: ssd>(a: [n + 12][sd], c, k) -> ([n - 1], [n]) {
-    // qsdqs
+node dd<n : {int : n != 0}, a: int>(a: [n + 12], c, k) -> ([n - 1], [n]) {
     if (n / 2 == 3) {
         (a[..12] . b, @reg(n, k))
     } else {

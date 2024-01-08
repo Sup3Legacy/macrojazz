@@ -88,8 +88,8 @@ fn z3_compare_types<'a>(
 }
 
 pub type Identifier = String;
-type ExpLocated<T> = Located<(), T>;
-type ExpTypedLocated<T> = Located<ExpType, T>;
+pub type ExpLocated<T> = Located<(), T>;
+pub type ExpTypedLocated<T> = Located<ExpType, T>;
 
 pub type Params = Vec<ExpLocated<Expression>>;
 
@@ -201,7 +201,7 @@ fn type_expression<'a>(
     z3_env: &HashMap<String, TTz3<'a>>,
     solver: &mut z3::Solver,
     exp_ctx: &HashMap<String, ExpType>,
-    static_ctx: &mut HashMap<String, StaticType>,
+    static_ctx: &HashMap<String, StaticType>,
     // TODO: add function signature context
     // TODO: also need assumptions on meta-variables?
     // OR put them in the z3 context before calling this function, maybe
@@ -394,8 +394,27 @@ fn type_expression<'a>(
     }
 }
 
+impl EarlyLocated<EarlyType> {
+    pub fn to_exptype(self, env: &HashMap<String, StaticType>) -> ExpType {
+        match self.inner {
+            EarlyType::Tuple(type_vec) => ExpType::Tuple(
+                type_vec
+                    .into_iter()
+                    .map(|v| v.to_exptype(env))
+                    .collect::<Vec<_>>(),
+            ),
+            EarlyType::Base(static_exp) => {
+                ExpType::Vector(type_static(static_exp, env).expect("truc").to_tt())
+            }
+            EarlyType::Unit => ExpType::Bit,
+        }
+    }
+}
+
 // TODO: should take as argument an environment with all node names and signatures
-pub fn type_check_node(node: EarlyLocated<EarlyNode>) {
+pub fn type_check_node(
+    located_node: EarlyLocated<EarlyNode>,
+) -> Result<ExpTypedLocated<Expression>, ExpLocated<TypingError>> {
     let z3_cfg = z3::Config::new();
     let z3_ctx = z3::Context::new(&z3_cfg);
     let mut z3_solver = z3::Solver::new(&z3_ctx);
@@ -404,6 +423,75 @@ pub fn type_check_node(node: EarlyLocated<EarlyNode>) {
     let mut exp_ctx = HashMap::new();
     let mut static_ctx = HashMap::new();
 
-    let _ = type_expression(node.inner.block, &z3_ctx, &z3_env, &mut z3_solver, &exp_ctx, &mut static_ctx);
+    let node = located_node.inner;
 
+    if let Some(static_params) = node.static_args {
+        // Add all idents to the env and nothing else
+        for located_sparam in static_params.inner.iter() {
+            let sparam = &located_sparam.inner;
+            let sparam_type = sparam
+                .typ
+                .as_ref()
+                .expect("Want a type for static parameter.")
+                .clone();
+            let base_type = &sparam_type.inner.base.expect("Want a base type");
+
+            // TODO: convert EarlyStaticType to StaticType (should be ok)
+            static_ctx.insert(
+                sparam.name.inner.clone(),
+                StaticType::from_early(base_type.clone()),
+            );
+        }
+
+        // Handle type refinements
+        for located_sparam in static_params.inner {
+            let sparam = located_sparam.inner;
+            let sparam_type = sparam.typ.expect("Want a type for static parameter.");
+            let base_type = sparam_type.inner.base.expect("Want a base type");
+            let refinement_opt = sparam_type.inner.refinement;
+
+            if let Some(refinement) = refinement_opt {
+                let typed_refinement = type_static(refinement, &static_ctx)
+                    .expect("Could not type static param refinement expression.")
+                    .to_tt()
+                    .to_z3(&z3_ctx, &z3_env);
+
+                match base_type.inner {
+                    EarlyStaticBaseType::Int => {
+                        let lhs = z3::ast::Int::new_const(&z3_ctx, sparam.name.inner.clone());
+                        z3_env.insert(sparam.name.inner, TTz3::Int(lhs));
+                    }
+                    EarlyStaticBaseType::Bool => {
+                        let lhs = z3::ast::Bool::new_const(&z3_ctx, sparam.name.inner.clone());
+                        z3_env.insert(sparam.name.inner, TTz3::Bool(lhs));
+                    }
+                };
+
+                match typed_refinement {
+                    TTz3::Int(_) => panic!("Refinement expression must have Bool type"),
+                    TTz3::Bool(b) => {
+                        z3_solver.assert(&b);
+                    }
+                }
+            }
+        }
+    }
+
+    for located_dparam in node.runtime_args.inner {
+        let dparam = located_dparam.inner;
+        let dparam_type = dparam
+            .typ
+            .expect("Must provide concrete type")
+            .to_exptype(&static_ctx);
+        exp_ctx.insert(dparam.name.inner.clone(), dparam_type);
+    }
+
+    type_expression(
+        node.block,
+        &z3_ctx,
+        &z3_env,
+        &mut z3_solver,
+        &exp_ctx,
+        &static_ctx,
+    )
 }
