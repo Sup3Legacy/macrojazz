@@ -133,7 +133,13 @@ impl TT {
     /// Turn TT to z3 term
     pub fn to_z3<'a>(self, ctx: &'a z3::Context, z3_env: &HashMap<String, TTz3<'a>>) -> TTz3<'a> {
         match self {
-            TT::Ident(i) => z3_env.get(&i).unwrap().clone(),
+            TT::Ident(i) => z3_env
+                .get(&i)
+                .expect(&format!(
+                    "Cannot find z3 env binding for static variable {}",
+                    i.as_str()
+                ))
+                .clone(),
             TT::IntLiteral(i) => TTz3::Int(z3::ast::Int::from_u64(ctx, i)),
             TT::BoolLiteral(b) => TTz3::Bool(z3::ast::Bool::from_bool(ctx, b)),
             TT::MonOp { operand, operator } => {

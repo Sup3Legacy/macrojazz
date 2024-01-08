@@ -436,7 +436,10 @@ pub fn type_check_node(
                 .clone();
             let base_type = &sparam_type.inner.base.expect("Want a base type");
 
-            // TODO: convert EarlyStaticType to StaticType (should be ok)
+            println!(
+                "Insert type for static parameter {}",
+                sparam.name.inner.clone()
+            );
             static_ctx.insert(
                 sparam.name.inner.clone(),
                 StaticType::from_early(base_type.clone()),
@@ -450,23 +453,32 @@ pub fn type_check_node(
             let base_type = sparam_type.inner.base.expect("Want a base type");
             let refinement_opt = sparam_type.inner.refinement;
 
+            let name = sparam.name.inner.clone();
+            println!(
+                "Insert z3 constant for static parameter {}",
+                name.as_str()
+            );
+            match base_type.inner {
+                EarlyStaticBaseType::Int => {
+                    let lhs = z3::ast::Int::new_const(&z3_ctx, sparam.name.inner.clone());
+                    z3_env.insert(sparam.name.inner, TTz3::Int(lhs));
+                }
+                EarlyStaticBaseType::Bool => {
+                    let lhs = z3::ast::Bool::new_const(&z3_ctx, sparam.name.inner.clone());
+                    z3_env.insert(sparam.name.inner, TTz3::Bool(lhs));
+                }
+            };
+
             if let Some(refinement) = refinement_opt {
                 let typed_refinement = type_static(refinement, &static_ctx)
                     .expect("Could not type static param refinement expression.")
                     .to_tt()
                     .to_z3(&z3_ctx, &z3_env);
 
-                match base_type.inner {
-                    EarlyStaticBaseType::Int => {
-                        let lhs = z3::ast::Int::new_const(&z3_ctx, sparam.name.inner.clone());
-                        z3_env.insert(sparam.name.inner, TTz3::Int(lhs));
-                    }
-                    EarlyStaticBaseType::Bool => {
-                        let lhs = z3::ast::Bool::new_const(&z3_ctx, sparam.name.inner.clone());
-                        z3_env.insert(sparam.name.inner, TTz3::Bool(lhs));
-                    }
-                };
-
+                println!(
+                    "Insert z3 refinement constraint for static parameter {}",
+                    name.as_str()
+                );
                 match typed_refinement {
                     TTz3::Int(_) => panic!("Refinement expression must have Bool type"),
                     TTz3::Bool(b) => {
