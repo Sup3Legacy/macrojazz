@@ -1,4 +1,6 @@
-node dd<n: {int: n >= 1}, m: {int: m >= 1}>(a: [n], b: [m]) -> [n + m] {
+
+
+node dd<n: {int: n >= 1}, m: {int: m >= 1}>(a: [n], b: [m]) -> [n + m * 1 + 2 - 1 - 1] {
     a.b
 }
 

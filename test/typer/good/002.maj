@@ -1,3 +1,5 @@
+// Change o == 0 to o == 1
 node dd<n: {int: n >= 1}, m: {int: m >= 1}, o: {int: o == 0 /\ o > 0}>(a: [n], b: [m]) -> [1] {
     a.b
 }
+

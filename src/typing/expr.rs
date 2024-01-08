@@ -12,6 +12,7 @@ pub enum TypingError {
     BinOpWrongSize,
     ConditionDoesntType,
     ConditionNotBool,
+    WrongReturnType,
 }
 
 #[derive(Debug, Clone)]
@@ -454,10 +455,7 @@ pub fn type_check_node(
             let refinement_opt = sparam_type.inner.refinement;
 
             let name = sparam.name.inner.clone();
-            println!(
-                "Insert z3 constant for static parameter {}",
-                name.as_str()
-            );
+            println!("Insert z3 constant for static parameter {}", name.as_str());
             match base_type.inner {
                 EarlyStaticBaseType::Int => {
                     let lhs = z3::ast::Int::new_const(&z3_ctx, sparam.name.inner.clone());
@@ -514,6 +512,11 @@ pub fn type_check_node(
 
     if !compare {
         println!("Bad return type");
+        return Err(ExpLocated::empty_from_range(
+            TypingError::WrongReturnType,
+            (),
+            0..0,
+        ));
     }
 
     Ok(block_typexp)

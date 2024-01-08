@@ -1,0 +1,9 @@
+node dd<n: {int: n >= 1}, m: {int: m >= 1}>(a: [n], b: [m]) -> [n + m] {
+    if (n == m) {
+        a.a
+    } else {
+        a.b
+    }
+}
+
+
